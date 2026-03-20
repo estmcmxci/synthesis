@@ -99,14 +99,18 @@ const profile = await resolve('estmcmxci.eth')
 | `resolve` | Stays as the low-level ENS tool (address, text records, contenthash). `trust` supersedes it for TRL use cases |
 | `profile` | Incorporate trust tier alongside the existing ENS profile data |
 
-### New dependencies
+### New dependencies (installed)
 
-| Package | Purpose |
-|---------|---------|
-| `@worldcoin/agentkit` | AgentBook on-chain lookup, World ID verification flow |
-| IPFS pinning client (Pinata SDK or web3.storage) | Pin manifests and static content |
-| Signature utils (EIP-191/EIP-712 via viem) | Sign and verify AIP manifests — viem already supports this natively |
-| Bankr Agent API | Crypto execution layer — token deployment (Clanker), fee claiming, swaps, transfers |
+| Package | Location | Purpose |
+|---------|----------|---------|
+| `viem` | resolver, cli | ENS resolution, contract reads, EIP-191 signing — covers all ENS needs natively |
+| `zod` | resolver, cli | TrustProfile schema, TrustTier enum, runtime validation |
+| `pinata` | resolver, cli | IPFS pinning for manifests and static content |
+| `@worldcoin/agentkit` | resolver | AgentBook on-chain lookup, World ID verification flow |
+| `@zerodev/sdk` + `@zerodev/permissions` + `permissionless` | resolver | Wallet stretch goal — session keys, smart accounts |
+| `omnipin` | root devDep | IPFS pin + ENS contenthash + Safe multisig proposal |
+| `next` + `react` + `tailwindcss` + `@mdx-js/react` | site | Application layer |
+| Bankr Agent API | REST (no SDK) | Crypto execution — token deployment (Clanker), fee claiming, swaps, transfers |
 
 ### Bankr as crypto execution layer
 
@@ -130,19 +134,23 @@ The **wallet layer** (Safe + passkeys + session keys) and the **spending layer**
 
 ```
 synthesis/
+  package.json                 # (exists) pnpm workspace root
+  pnpm-workspace.yaml          # (exists) packages/*
+  pnpm-lock.yaml               # (exists) lockfile
   README.md                    # (exists) registration + API info
   ONE-PAGER.md                 # (exists) project pitch
   PRD.md                       # (exists) product requirements
   PLAN.md                      # (exists) this file
   ARCHITECTURE.md              # (exists) how all layers compose
+  WORKFLOW.md                  # (exists) Linear → branch → PR → merge flow
   context.md                   # (exists) SKILL.md value prop
   packages/
     resolver/                  # @synthesis/resolver — the core library
-      package.json
-      tsconfig.json
+      package.json             # (exists) viem, zod, pinata, @worldcoin/agentkit, @zerodev/*
+      tsconfig.json            # (exists)
       src/
-        index.ts               # main export: resolve(ensName) => TrustProfile
-        types.ts               # TrustProfile, AgentManifest, TrustTier types
+        index.ts               # (exists) main export
+        schema.ts              # (exists) TrustProfile, TrustTier Zod schemas
         layers/
           personhood.ts        # Resolution Layer 0: World ID proof-of-personhood (via AgentKit)
           identity.ts          # Resolution Layer 1: ENSIP-25 resolution
@@ -151,10 +159,11 @@ synthesis/
           skill.ts             # Resolution Layer 4: SKILL.md fetch + domain verification
         utils/
           ens.ts               # ENS name normalization, text record helpers
-          ipfs.ts              # IPFS gateway fetch + pinning (Pinata / web3.storage)
+          ipfs.ts              # IPFS gateway fetch + pinning (Pinata)
           erc7930.ts           # ERC-7930 address encoding/decoding
           signature.ts         # EIP-191/EIP-712 sign + verify helpers (via viem)
     cli/                       # (exists) @synthesis/cli — Ensemble CLI
+      package.json             # (exists) viem, zod, pinata, incur, @synthesis/resolver
       index.ts                 # (exists) CLI entry point, command registration
       commands/
         index.ts               # (exists) command re-exports
@@ -194,21 +203,27 @@ synthesis/
         agentbook.ts           # NEW — World ID AgentBook contract reads
         ipfs.ts                # NEW — IPFS pin + fetch (shared with resolver)
         manifest.ts            # NEW — AIP manifest sign/verify helpers
-    site/                      # Next.js personal site (estmcmxci.eth)
-      package.json
-      next.config.ts
-      app/
-        page.tsx               # / — landing, thesis of deliberate legibility
-        essay/page.tsx         # /essay — "The Abstracted Self"
-        resolve/page.tsx       # /resolve — interactive TRL demo
-        trust/page.tsx         # /trust — live trust profile for estmcmxci.eth
-        token/page.tsx         # /token — $ESTMCMXCI profile (price, trust, trading, fees)
-        wallet/page.tsx        # /wallet — passkey Safe creation + session keys
-        skill.md/route.ts      # /skill.md — machine-readable capability file
-      components/
-        trust-profile.tsx      # TRL result visualization
-        layer-badge.tsx        # per-layer pass/fail indicator
-        lineage-chain.tsx      # AIP version lineage visualization
+    site/                      # @synthesis/site — Next.js personal site (estmcmxci.eth)
+      package.json             # (exists) next 15, react 19, tailwind 4, @mdx-js/react, @synthesis/resolver
+      next.config.ts           # (exists) MDX plugin
+      tsconfig.json            # (exists)
+      postcss.config.mjs       # (exists) @tailwindcss/postcss
+      src/
+        app/
+          layout.tsx           # (exists) root layout
+          page.tsx             # (exists) / — landing, thesis of deliberate legibility
+          globals.css          # (exists) tailwind import
+          essay/page.tsx       # /essay — "The Abstracted Self"
+          resolve/page.tsx     # /resolve — interactive TRL demo
+          trust/page.tsx       # /trust — live trust profile for estmcmxci.eth
+          token/page.tsx       # /token — $ESTMCMXCI profile (price, trust, trading, fees)
+          wallet/page.tsx      # /wallet — passkey Safe creation + session keys
+          skill.md/route.ts    # /skill.md — machine-readable capability file
+        mdx-components.tsx     # (exists) MDX component overrides
+        components/
+          trust-profile.tsx    # TRL result visualization
+          layer-badge.tsx      # per-layer pass/fail indicator
+          lineage-chain.tsx    # AIP version lineage visualization
   scripts/
     set-records.sh             # Set all ENS records for estmcmxci.eth
     publish-manifest.sh        # Create + sign + pin AIP manifest to IPFS
@@ -220,17 +235,11 @@ synthesis/
 
 ## Build Sequence
 
-### Phase 1: Foundation (do first)
+> Phase numbering matches ARCHITECTURE.md, Linear epics, and the [tracking spreadsheet](https://docs.google.com/spreadsheets/d/1SsP_h1_CaMOmnEI_I_mOpg5o4N_rxr8ABVv2tFKSnwg/edit?gid=926803338#gid=926803338).
 
-- [ ] Initialize monorepo (pnpm workspace or simple npm workspaces)
-- [ ] Scaffold `packages/resolver/` with TypeScript config
-- [ ] Install dependencies: `viem` (for ENS + contract reads), `@ensdomains/ensjs` if needed
-- [ ] Define types in `types.ts` (TrustProfile, AgentManifest, TrustTier)
-- [ ] Implement `utils/ens.ts` — text record reading, name normalization
-- [ ] Implement `utils/erc7930.ts` — address encoding for ENSIP-25 key construction
-- [ ] Implement `utils/ipfs.ts` — fetch from IPFS gateway
+### Phase 0: Personhood — World ID + AgentKit
 
-### Phase 2: Resolution Layers (core work)
+Linear epic: SYN-5
 
 - [ ] `layers/personhood.ts` — Resolution Layer 0: World ID proof-of-personhood
   - Integrate `@worldcoin/agentkit` for on-chain AgentBook lookup
@@ -238,83 +247,119 @@ synthesis/
   - AgentBook addresses: Base mainnet `0xE1D1D3526A6FAa37eb36bD10B933C1b77f4561a4`, World Chain `0xA23aB2712eA7BBa896930544C7d6636a96b944dA`
   - Answers: "is a real human behind this agent?" (boolean + nullifier)
   - AgentKit gives you a boolean. Synthesis gives you a gradient.
+- [ ] `ensemble personhood check <address>` — CLI command for AgentBook lookup
+- [ ] `ensemble personhood register` — register in AgentBook (human task — needs biometric)
+- [ ] Register estmcmxci.eth agent wallet in AgentBook via AgentKit CLI
 
+### Phase 1: Substrate — TRL Resolver Library (critical path, due Mar 25)
+
+Linear epic: SYN-6 · GitHub milestone: Phase 1: Substrate
+
+**Scaffold + types (done):**
+- [x] Initialize pnpm workspace monorepo
+- [x] Scaffold `packages/resolver/` with TypeScript + viem + zod
+- [x] Define types: TrustProfile, TrustTier (Zod schemas in `schema.ts`)
+
+**Utils:**
+- [ ] Implement `utils/ens.ts` — text record reading, name normalization (viem `getEnsText`, `normalize`)
+- [ ] Implement `utils/erc7930.ts` — address encoding for ENSIP-25 key construction
+- [ ] Implement `utils/ipfs.ts` — IPFS gateway fetch + Pinata pinning
+
+**Resolution layers:**
 - [ ] `layers/identity.ts` — Resolution Layer 1: ENSIP-25 resolution
   - Construct `agent-registration[registry][agentId]` key
   - Query ENS text record
   - Verify against ERC-8004 contract (tokenURI, ownerOf)
   - Known registries: Base mainnet `0x8004A169FB4a3325136EB29fA0ceB6D2e539a432`
-
-- [ ] `layers/context.ts` — ENSIP-26 resolution
-  - Read `agent-context` text record
-  - Parse structured content (JSON/YAML/Markdown)
-  - Extract SKILL.md URL if present
-
-- [ ] `layers/manifest.ts` — AIP resolution
+- [ ] `layers/context.ts` — Resolution Layer 2: ENSIP-26 resolution
+  - Read `agent-context` text record, parse structured content, extract SKILL.md URL
+- [ ] `layers/manifest.ts` — Resolution Layer 3: AIP manifest
   - Read `agent-latest` and `agent-version-lineage` from root name
   - Resolve manifest ref (subname mode: read `agent-manifest` from `<version>.<name>`)
-  - Fetch manifest bytes from IPFS
-  - Verify signature against ENS owner
+  - Fetch manifest bytes from IPFS, verify signature against ENS owner
   - Walk `prev` chain for lineage
+- [ ] `layers/skill.ts` — Resolution Layer 4: DVS resolution
+  - Fetch SKILL.md from URL in agent-context, verify domain ownership
 
-- [ ] `layers/skill.ts` — DVS resolution
-  - Fetch SKILL.md from URL in agent-context
-  - Verify domain ownership (ENS lookup on domain)
-
+**Compose + CLI:**
 - [ ] `src/index.ts` — compose all layers into `resolve(ensName): Promise<TrustProfile>`
+- [ ] `ensemble trust <name>` — flagship CLI command (full TRL resolution)
+- [ ] `ensemble manifest create/pin/verify` — AIP manifest lifecycle commands
+- [ ] `ensemble context set/get` — ENSIP-26 agent-context commands
+- [ ] `ensemble skill fetch` — DVS fetch + domain verification
+- [ ] Extend `agent info` with ENSIP-25 linkage + trust tier display
 
-### Phase 3: Live Records (make it real)
+### Phase 2: Application — Personal Site (due Mar 28)
 
-- [ ] Set ENSIP-25 record on `estmcmxci.eth` for Token #24994
-- [ ] Set ENSIP-26 `agent-context` on `estmcmxci.eth`
-- [ ] Create v1 AIP manifest JSON, sign with ENS owner key
-- [ ] Pin manifest to IPFS (via w3s.link / Pinata / nft.storage)
-- [ ] Set AIP records: `agent-latest`, `agent-version-lineage` on root
-- [ ] Create `v1.estmcmxci.eth` subname, set `agent-manifest` record
+Linear epic: SYN-7 · GitHub milestone: Phase 2: Application
+
+- [x] Scaffold Next.js 15 site (`packages/site/`) with Tailwind 4 + MDX
+- [ ] Build landing page (`/`) — identity + thesis of deliberate legibility
+- [ ] Publish "The Abstracted Self" as site content (`/essay`)
+- [ ] Build interactive TRL resolver (`/resolve`) — type any ENS name, see all 5 layers
+- [ ] Build live trust profile page (`/trust`) — estmcmxci.eth's own profile
+- [ ] Build token profile page (`/token`) — $ESTMCMXCI price, trust, trading, fees
+- [ ] Add machine-readable layer (JSON-LD, SKILL.md route, OG tags)
+
+### Phase 3: Hosting — Dweb Deployment (due Mar 29)
+
+Linear epic: SYN-8 · GitHub milestone: Phase 3: Hosting
+
+- [ ] Set up IPFS pinning (Pinata)
+- [ ] Build `ensemble deploy` CLI command (wraps OmniPin)
+- [ ] Set ENS records on estmcmxci.eth (ENSIP-25/26, AIP)
+  - Set ENSIP-25 record for Token #24994
+  - Set ENSIP-26 `agent-context`
+  - Set AIP records: `agent-latest`, `agent-version-lineage`
+  - Create `v1.estmcmxci.eth` subname, set `agent-manifest`
+- [ ] Create + sign + pin AIP v1 manifest to IPFS
 - [ ] Host SKILL.md on ENS subdomain (skills.estmcmxci.eth via eth.limo)
+- [ ] Verify site at estmcmxci.eth.limo
 
-### Phase 4: Demo — estmcmxci.eth as Reference Implementation
+### Phase 4: Launch Ceremony (due Mar 31)
 
-The personal website (see `SITE.md`) *is* the reference implementation. Resolve estmcmxci.eth and what comes back is a human resolvable across all 5 layers — from biometric personhood down to skill provenance.
+Linear epic: SYN-9 · GitHub milestone: Phase 4: Launch Ceremony
 
-- [ ] Build CLI: `ensemble trust estmcmxci.eth` (full TRL resolution)
-- [ ] Build site at estmcmxci.eth (Next.js on Vercel) with:
-  - `/resolve` — interactive TRL demo, resolve any ENS name through all 5 layers
-  - `/trust` — live-resolved trust profile for estmcmxci.eth
-  - `/essay` — "The Abstracted Self" (the thesis: conscious legibility as inversion)
-  - `/token` — $ESTMCMXCI token profile (price, trust, trading link, fee earnings)
-- [ ] Register estmcmxci.eth agent wallet in AgentBook via AgentKit CLI (World ID verification)
-- [ ] Deploy site to IPFS + set ENS contenthash (`ensemble deploy`)
-- [ ] Visualize lineage chain (prev pointers)
-
-### Phase 4.5: Launch Ceremony
-
-The token deployment is the culmination — proof that the entire stack works.
-
-- [ ] Pin token image + metadata to IPFS
-- [ ] Run `ensemble launch estmcmxci.eth`
+- [ ] Build `ensemble launch <name>` CLI command — the ceremony
+- [ ] Pin $ESTMCMXCI token image + metadata to IPFS
+- [ ] Execute launch ceremony — deploy $ESTMCMXCI on Base via Bankr → Clanker
   - Verifies TRL === full (all 5 layers pass)
   - Verifies site is live (contenthash set, gateway responding)
   - Confirms caller owns the ENS name
-  - Deploys $ESTMCMXCI via Bankr → Clanker on Base
+  - Deploys via Bankr → Clanker factory on Base
   - Writes token contract address to ENS text record (`identity-token`)
 - [ ] Verify token is tradeable on Uniswap
-- [ ] Record demo video / conversation log for submission
-
-### Phase 5: Submit
-
-- [ ] Register project on synthesis.devfolio.co API (create team, create project)
+- [ ] Create agent.json + agent_log.json (DevSpot track requirement)
+- [ ] Record demo video + write conversationLog
 - [ ] Push code to public GitHub repo
-- [ ] Write conversationLog documenting human-agent collaboration
-- [ ] Submit before deadline
+- [ ] Publish project on hackathon platform (synthesis.devfolio.co)
 
-## Key Decisions to Make Early
+### Phase 5: Wallet (post-hackathon stretch goal)
 
-1. **viem vs ethers** — viem is lighter and has better ENS support. Recommend viem.
-2. **Monorepo tool** — pnpm workspaces (simple, no turbo needed for 2 packages)
-3. **IPFS pinning** — web3.storage (free, easy API) or Pinata
-4. **Demo format** — CLI is faster to build, web UI is better for judges. Can do both.
-5. **ENS record setting** — use `cast` (foundry) or ethers script. Need private key access.
+Linear epic: SYN-10
+
+- [ ] Deploy Safe on Base with WebAuthn passkey owner (ZeroDev)
+- [ ] Enable SmartSession module + policy contracts
+- [ ] Session key creation UI (passkey auth → configure → issue)
+- [ ] Wire session policies to TRL trust tiers
+
+### Phase 6: Spending (post-hackathon)
+
+Linear epic: SYN-11
+
+- [ ] x402 payment flow with TRL verification on both sides
+- [ ] Evaluate card issuers (Immersve, Lithic + Bridge)
+- [ ] Trust-tier-scoped spend limits
+
+## Key Decisions (resolved)
+
+1. **viem** over ethers — lighter, native ENS support, already installed
+2. **pnpm workspaces** — simple, no turbo needed for 3 packages
+3. **Pinata** for IPFS pinning — SDK installed, JWT auth
+4. **EIP-191** for manifest signing — viem `signMessage` / `verifyMessage`
+5. **OmniPin** for hosting pipeline — IPFS pin + ENS contenthash + Safe multisig
+6. **Bankr REST API** for crypto execution — no npm SDK, MCP tools for CLI
+7. **ZeroDev** over Safe + Rhinestone for wallet — simpler DX, built-in session serialization (stretch goal)
 
 ## Borrowed Patterns from AgentKit
 
@@ -328,5 +373,5 @@ The token deployment is the culmination — proof that the entire stack works.
 - **ENS record gas costs** — setting multiple text records on mainnet. Batch if possible.
 - **Subname creation** — `v1.estmcmxci.eth` requires either owning the name with a resolver that supports subnames, or using a service like NameWrapper.
 - **IPFS gateway reliability** — have fallback gateways configured.
-- **Signature verification complexity** — EIP-712 or EIP-191? Need to decide and implement.
-- **Timeline** — hackathon kicks off Mar 13. Foundation + core layers should be done by then.
+- **AgentKit stability** — v0.1.5 (pre-1.0, proprietary license). Fallback: call AgentBook contract directly via viem `readContract()`.
+- **Timeline** — hackathon deadline Mar 31. Phase 1 (Substrate) due Mar 25, Phase 2 (Application) due Mar 28, Phase 3 (Hosting) due Mar 29.

@@ -1,0 +1,36 @@
+{
+  "name": "@synthesis/root",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Synthesis — Trust Resolution Layer for verifiable agent identity",
+  "type": "module",
+  "scripts": {
+    "build": "pnpm --filter @synthesis/resolver build && pnpm --filter @synthesis/cli build",
+    "build:resolver": "pnpm --filter @synthesis/resolver build",
+    "build:cli": "pnpm --filter @synthesis/cli build",
+    "build:site": "pnpm --filter @synthesis/site build",
+    "dev:site": "pnpm --filter @synthesis/site dev",
+    "lint": "pnpm -r lint",
+    "format": "pnpm -r format"
+  },
+  "keywords": [
+    "ens",
+    "ethereum",
+    "trust",
+    "identity",
+    "agent"
+  ],
+  "license": "MIT",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "keccak",
+      "node-hid",
+      "sharp",
+      "usb"
+    ]
+  },
+  "devDependencies": {
+    "omnipin": "^2.1.2"
+  }
+}
