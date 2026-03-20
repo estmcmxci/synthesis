@@ -11,28 +11,28 @@
     "dist"
   ],
   "scripts": {
-    "build": "npx tsup index.ts --format esm --dts --outDir dist",
-    "dev": "npx tsx index.ts",
+    "build": "tsup index.ts --format esm --dts --outDir dist",
+    "dev": "tsx index.ts",
     "start": "node dist/index.js",
     "lint": "npx @biomejs/biome lint --write .",
     "format": "npx @biomejs/biome format --write ."
   },
   "devDependencies": {
-    "@types/bun": "latest",
+    "typescript": "^5.8.3",
     "tsup": "^8.5.1",
     "tsx": "^4.20.6"
-  },
-  "peerDependencies": {
-    "typescript": "^5"
   },
   "dependencies": {
     "@ledgerhq/hw-app-eth": "^7.2.0",
     "@ledgerhq/hw-transport-node-hid": "^6.29.17",
+    "@synthesis/resolver": "workspace:*",
     "dotenv": "^17.3.1",
     "incur": "^0.3.1",
+    "pinata": "^1.5.0",
     "viem": "^2.33.3",
     "yocto-spinner": "^1.0.0",
-    "yoctocolors": "^2.1.1"
+    "yoctocolors": "^2.1.1",
+    "zod": "^3.24.2"
   },
   "keywords": [
     "ens",
