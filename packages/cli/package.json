@@ -1,0 +1,45 @@
+{
+  "name": "@synthesis/cli",
+  "version": "0.1.0",
+  "description": "Ensemble CLI — manage ENS names and agent identities on Ethereum",
+  "module": "index.ts",
+  "type": "module",
+  "bin": {
+    "ensemble": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "npx tsup index.ts --format esm --dts --outDir dist",
+    "dev": "npx tsx index.ts",
+    "start": "node dist/index.js",
+    "lint": "npx @biomejs/biome lint --write .",
+    "format": "npx @biomejs/biome format --write ."
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "tsup": "^8.5.1",
+    "tsx": "^4.20.6"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@ledgerhq/hw-app-eth": "^7.2.0",
+    "@ledgerhq/hw-transport-node-hid": "^6.29.17",
+    "dotenv": "^17.3.1",
+    "incur": "^0.3.1",
+    "viem": "^2.33.3",
+    "yocto-spinner": "^1.0.0",
+    "yoctocolors": "^2.1.1"
+  },
+  "keywords": [
+    "ens",
+    "ethereum",
+    "names",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT"
+}

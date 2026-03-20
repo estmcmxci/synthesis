@@ -1,0 +1,333 @@
+/**
+ * Register Command
+ *
+ * Register a new ENS name using the commit-reveal process.
+ *
+ * Key difference from basenames-cli: ENS requires a two-step commit-reveal:
+ * 1. commit(makeCommitment(request)) - submit commitment hash
+ * 2. Wait minCommitmentAge (~60s) + buffer
+ * 3. register(request) - complete registration with payment
+ */
+
+import colors from "yoctocolors";
+import { isAddress, formatEther } from "viem";
+import {
+	startSpinner,
+	stopSpinner,
+	normalizeEnsName,
+	checkAvailable,
+	getRentPrice,
+	registerEnsName,
+	getSignerAddress,
+	getSignerAddressAsync,
+	getPublicClient,
+	getNetworkConfig,
+	closeLedger,
+	type RegisterOptions,
+} from "../utils";
+
+// Duration parsing
+function parseDuration(duration: string): bigint {
+	const match = duration.match(/^(\d+)(y|m|d)?$/i);
+	if (!match) {
+		throw new Error(
+			"Invalid duration format. Use: 1y, 6m, 30d, or seconds",
+		);
+	}
+
+	const value = Number(match[1]);
+	const unit = (match[2] || "s").toLowerCase();
+
+	switch (unit) {
+		case "y":
+			return BigInt(value * 365 * 24 * 60 * 60);
+		case "m":
+			return BigInt(value * 30 * 24 * 60 * 60);
+		case "d":
+			return BigInt(value * 24 * 60 * 60);
+		default:
+			return BigInt(value);
+	}
+}
+
+// Parse text records from CLI format: "key=value"
+function parseTextRecords(txtArgs: string[]): Record<string, string> {
+	const records: Record<string, string> = {};
+	for (const txt of txtArgs) {
+		const [key, ...valueParts] = txt.split("=");
+		if (key && valueParts.length > 0) {
+			records[key.trim()] = valueParts.join("=").trim();
+		}
+	}
+	return records;
+}
+
+/**
+ * Register a new ENS name
+ */
+export async function register(options: RegisterOptions) {
+	const {
+		name,
+		owner,
+		address,
+		duration,
+		txt,
+		primary,
+		useLedger,
+		accountIndex,
+	} = options;
+	const config = getNetworkConfig(options.network);
+
+	try {
+		// Get signer address
+		let signerAddress: `0x${string}` | null;
+
+		if (useLedger) {
+			console.log(colors.blue("Connecting to Ledger..."));
+			signerAddress = await getSignerAddressAsync(
+				true,
+				accountIndex || 0,
+			);
+			console.log(colors.green("✓ Connected to Ledger"));
+			console.log(colors.dim(`  Address: ${signerAddress}`));
+			console.log(
+				colors.dim(`  Account Index: ${accountIndex || 0}`),
+			);
+		} else {
+			signerAddress = getSignerAddress();
+			if (!signerAddress) {
+				console.error(
+					colors.red("Error: ENS_PRIVATE_KEY not set"),
+				);
+				console.error(
+					colors.yellow(
+						"Set the environment variable or use --ledger flag",
+					),
+				);
+				return;
+			}
+		}
+
+		// Use signer address as owner if not provided
+		// signerAddress is guaranteed non-null here (we returned early above if null)
+		const ownerAddress = owner || signerAddress!;
+
+		// Validate owner address
+		if (!isAddress(ownerAddress)) {
+			console.error(colors.red("Invalid owner address"));
+			return;
+		}
+
+		// Validate address if provided
+		const addressToSet = address || ownerAddress;
+		if (!isAddress(addressToSet)) {
+			console.error(colors.red("Invalid address"));
+			return;
+		}
+
+		const { label, fullName, node } = normalizeEnsName(
+			name,
+			options.network,
+		);
+
+		// Parse duration
+		const durationSeconds = parseDuration(duration || "1y");
+		const durationYears =
+			Number(durationSeconds) / (365 * 24 * 60 * 60);
+
+		console.log(colors.blue("\nENS Name Registration"));
+		console.log(colors.blue("=====================\n"));
+		console.log(`${colors.blue("Name:")}      ${fullName}`);
+		console.log(`${colors.blue("Owner:")}     ${ownerAddress}`);
+		console.log(`${colors.blue("Address:")}   ${addressToSet}`);
+		console.log(
+			`${colors.blue("Duration:")}  ${durationYears.toFixed(1)} year(s)`,
+		);
+		console.log(
+			`${colors.blue("Primary:")}   ${primary ? "Yes" : "No"}`,
+		);
+		if (useLedger) {
+			console.log(
+				`${colors.blue("Signing:")}   Ledger (index ${accountIndex || 0})`,
+			);
+			console.log(
+				colors.yellow(
+					"\nNote: Ledger will require TWO confirmations (commit + register)",
+				),
+			);
+		}
+
+		// Check availability
+		startSpinner("Checking availability...");
+		const isAvailable = await checkAvailable(label, options.network);
+
+		if (!isAvailable) {
+			stopSpinner();
+			console.error(
+				colors.red(`\n✗ ${fullName} is not available`),
+			);
+			return;
+		}
+		stopSpinner();
+		console.log(colors.green("✓ Name is available"));
+
+		// Get price
+		startSpinner("Getting price...");
+		const price = await getRentPrice(
+			label,
+			durationSeconds,
+			options.network,
+		);
+		stopSpinner();
+
+		const totalPrice = price.base + price.premium;
+		console.log(
+			`${colors.blue("Price:")}     ${formatEther(totalPrice)} ETH`,
+		);
+		if (price.premium > 0n) {
+			console.log(
+				colors.gray(
+					`  Base: ${formatEther(price.base)} ETH`,
+				),
+			);
+			console.log(
+				colors.gray(
+					`  Premium: ${formatEther(price.premium)} ETH`,
+				),
+			);
+		}
+
+		// Parse text records
+		const textRecords = txt ? parseTextRecords(txt) : {};
+		if (Object.keys(textRecords).length > 0) {
+			console.log(colors.blue("\nText Records:"));
+			for (const [key, value] of Object.entries(textRecords)) {
+				console.log(`  ${key}: ${value}`);
+			}
+		}
+
+		// Register using commit-reveal
+		console.log(colors.blue("\nStarting commit-reveal registration..."));
+		if (useLedger) {
+			console.log(
+				colors.yellow(
+					"Please confirm the COMMIT transaction on your Ledger device...",
+				),
+			);
+		}
+		startSpinner("Step 1/3: Sending commitment...");
+
+		const resolverData: `0x${string}`[] = [];
+
+		const { commitTxHash, registerTxHash } = await registerEnsName(
+			label,
+			ownerAddress as `0x${string}`,
+			durationSeconds,
+			resolverData,
+			primary || false,
+			options.network,
+			useLedger,
+			accountIndex,
+			// onCommitSent
+			(txHash) => {
+				stopSpinner();
+				console.log(
+					colors.green(`✓ Commitment sent: ${txHash}`),
+				);
+				startSpinner(
+					"Step 1/3: Waiting for commitment confirmation...",
+				);
+			},
+			// onCommitConfirmed
+			() => {
+				stopSpinner();
+				console.log(colors.green("✓ Commitment confirmed"));
+			},
+			// onWaitStart
+			(waitSeconds) => {
+				console.log(
+					colors.blue(
+						`\nStep 2/3: Waiting ${waitSeconds}s for commitment to mature...`,
+					),
+				);
+			},
+			// onWaitTick
+			(remaining) => {
+				process.stdout.write(
+					`\r  ${colors.gray(`${remaining}s remaining...`)}  `,
+				);
+			},
+			// onRegisterSent
+			(txHash) => {
+				process.stdout.write("\r" + " ".repeat(40) + "\r");
+				if (useLedger) {
+					console.log(
+						colors.yellow(
+							"Please confirm the REGISTER transaction on your Ledger device...",
+						),
+					);
+				}
+				console.log(
+					colors.green(`✓ Registration sent: ${txHash}`),
+				);
+				startSpinner(
+					"Step 3/3: Waiting for registration confirmation...",
+				);
+			},
+		);
+
+		// Wait for register tx confirmation
+		const client = getPublicClient(options.network);
+		const receipt = await client.waitForTransactionReceipt({
+			hash: registerTxHash,
+			confirmations: 2,
+		});
+
+		stopSpinner();
+
+		if (receipt.status === "success") {
+			console.log(
+				colors.green(
+					`✓ Confirmed in block ${receipt.blockNumber}`,
+				),
+			);
+			console.log(
+				colors.green(
+					`\n Successfully registered ${fullName}!\n`,
+				),
+			);
+			console.log(
+				`${colors.blue("Commit Tx:")}    ${config.explorerUrl}/tx/${commitTxHash}`,
+			);
+			console.log(
+				`${colors.blue("Register Tx:")}  ${config.explorerUrl}/tx/${registerTxHash}`,
+			);
+
+			if (
+				Object.keys(textRecords).length > 0 ||
+				addressToSet !== ownerAddress
+			) {
+				console.log(
+					colors.yellow(
+						"\nNote: Additional records may need to be set separately.",
+					),
+				);
+				console.log(
+					colors.yellow(
+						"Use 'ens edit' commands to set text and address records.",
+					),
+				);
+			}
+		} else {
+			console.error(colors.red("✗ Registration transaction reverted"));
+		}
+	} catch (error) {
+		stopSpinner();
+		const e = error as Error;
+		console.error(colors.red(`Error registering: ${e.message}`));
+	} finally {
+		if (useLedger) {
+			await closeLedger();
+		}
+	}
+}
