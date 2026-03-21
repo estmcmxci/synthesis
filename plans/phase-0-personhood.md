@@ -149,3 +149,43 @@ And the trust tier computation needs updating — `personhood` is the floor but 
 - **AgentKit v0.1.5 instability**: Fallback to direct viem contract read (same ABI, same result).
 - **World App requirement**: Registration requires the World App. If the user doesn't have it, SYN-14 blocks. The resolver layer (SYN-12) and check command (SYN-13) work regardless.
 - **Gas on Base**: Registration via relay is gasless (Worldcoin sponsors). If relay is down, manual mode requires Base ETH.
+
+---
+
+## Results — Completed 2026-03-21
+
+### What was built
+
+**Resolution Layer 0 (Personhood)** is fully operational. The TRL can now answer: "Is a real, unique human behind this agent?"
+
+| Deliverable | Files | PR |
+|-------------|-------|-----|
+| `resolvePersonhood()` — resolver layer | `packages/resolver/src/layers/personhood.ts`, `schema.ts` | [#2](https://github.com/estmcmxci/synthesis/pull/2) |
+| `ensemble personhood check` — CLI read command | `packages/cli/commands/personhood.ts` | [#3](https://github.com/estmcmxci/synthesis/pull/3) |
+| `ensemble personhood register` — CLI write command | `packages/cli/commands/personhood.ts` | [#4](https://github.com/estmcmxci/synthesis/pull/4) |
+
+### On-chain registration
+
+| Field | Value |
+|-------|-------|
+| Registered address | `0xeb0ABB367540f90B57b3d5719fd2b9c740a15022` |
+| ENS name | emilemarcelagustin.eth (manager) |
+| Network | Base mainnet |
+| AgentBook contract | `0xE1D1D3526A6FAa37eb36bD10B933C1b77f4561a4` |
+| Nullifier hash | `0x01c2d8c2a0abcdcd5b72529fd7c1830dbc1610840c3678965238833d21a25fa0` |
+| Registration tx | [BaseScan](https://basescan.org/tx/0xa0b6a81ca84ed84c5976774579f7c17b4c5f867ee0262799c8f21daebcb98b04) |
+| Relay | `https://x402-worldchain.vercel.app` (gasless) |
+
+### Architecture decisions
+
+1. **Direct viem `readContract()` over AgentKit SDK** — AgentKit v0.1.5 wraps viem internally. We skip the wrapper and call the AgentBook contract directly with a minimal ABI. Simpler, fewer dependencies in the hot path, same result.
+
+2. **Shell out to `@worldcoin/agentkit-cli` for registration** — The registration flow requires an interactive QR code (World App scan → ZK proof → relay submission). Rather than reimplementing the bridge/polling logic, we delegate to the official CLI via `execFileSync` with `stdio: "inherit"`. Registration is a one-time human task, not a recurring operation.
+
+3. **Signing address separation** — We register `0xeb0ABB...022` (manager of emilemarcelagustin.eth), NOT `0x703a...89B` (estmcmxci.eth owner with personal assets). Private key stored in `.env`, never committed.
+
+4. **Personhood as optional signal** — Personhood enriches the TrustProfile but doesn't gate the trust tier progression. An agent without World ID can still reach `full` trust via ENSIP-25 + ENSIP-26 + AIP + DVS. Personhood adds a stronger floor signal: "a provably unique human chose to be legible."
+
+### What's next
+
+Phase 1: Substrate (SYN-6) — build the remaining four resolution layers and the `resolve()` composer that produces a complete TrustProfile.
