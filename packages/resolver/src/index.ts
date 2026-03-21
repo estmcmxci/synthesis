@@ -10,9 +10,11 @@ export {
   AgentBookNetwork,
   PersonhoodResultSchema,
   IdentityResultSchema,
+  ContextResultSchema,
   type TrustProfile,
   type PersonhoodResult,
   type IdentityResult,
+  type ContextResult,
 } from "./schema.js";
 
 export {
@@ -24,6 +26,11 @@ export {
   resolveIdentity,
   type ResolveIdentityOptions,
 } from "./layers/identity.js";
+
+export {
+  resolveContext,
+  type ResolveContextOptions,
+} from "./layers/context.js";
 
 export {
   createEnsClient,
