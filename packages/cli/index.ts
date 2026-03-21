@@ -34,6 +34,8 @@ import {
 	manifestCreate,
 	manifestPin,
 	manifestVerify,
+	contextGet,
+	contextSet,
 } from "./commands";
 import { stopSpinner } from "./utils/spinner";
 
@@ -815,6 +817,66 @@ manifest.command("verify", {
 });
 
 cli.command(manifest);
+
+// =============================================================================
+// Context Subcommand Group (ENSIP-26)
+// =============================================================================
+
+const context = Cli.create("context", {
+	description: "ENSIP-26 agent-context — read and write discovery records",
+});
+
+context.command("get", {
+	description: "Read the agent-context record for an ENS name",
+	args: z.object({
+		name: z.string().describe("ENS name to query"),
+	}),
+	examples: [
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			description: "Read agent-context",
+		},
+	],
+	async run({ args }) {
+		await contextGet({ name: args.name });
+		return { queried: args.name };
+	},
+});
+
+context.command("set", {
+	description: "Set the agent-context text record on an ENS name",
+	args: z.object({
+		name: z.string().describe("ENS name to update"),
+		value: z.string().describe("Context value (JSON string or plain text)"),
+	}),
+	options: z.object({
+		network: z.string().optional().describe("Network to use (mainnet, sepolia)"),
+		ledger: z.boolean().optional().describe("Use Ledger hardware wallet"),
+		accountIndex: z.string().optional().describe("Ledger account index (default: 0)"),
+	}),
+	alias: { network: "n", ledger: "l" },
+	examples: [
+		{
+			args: {
+				name: "emilemarcelagustin.eth",
+				value: '{"skill":"https://emilemarcelagustin.eth.limo/skill.md"}',
+			},
+			description: "Set agent-context with SKILL.md URL",
+		},
+	],
+	async run({ args, options }) {
+		await contextSet({
+			name: args.name,
+			value: args.value,
+			network: options.network,
+			useLedger: options.ledger,
+			accountIndex: options.accountIndex ? parseInt(options.accountIndex, 10) : 0,
+		});
+		return { set: args.name };
+	},
+});
+
+cli.command(context);
 
 // =============================================================================
 // Serve
