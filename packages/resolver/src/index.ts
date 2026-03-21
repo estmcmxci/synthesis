@@ -14,12 +14,14 @@ export {
   AgentManifestSchema,
   AgentManifestSignatureSchema,
   ManifestResultSchema,
+  SkillResultSchema,
   type TrustProfile,
   type PersonhoodResult,
   type IdentityResult,
   type ContextResult,
   type AgentManifest,
   type ManifestResult,
+  type SkillResult,
 } from "./schema.js";
 
 export {
@@ -41,6 +43,11 @@ export {
   resolveManifest,
   type ResolveManifestOptions,
 } from "./layers/manifest.js";
+
+export {
+  resolveSkill,
+  type ResolveSkillOptions,
+} from "./layers/skill.js";
 
 export {
   createEnsClient,
