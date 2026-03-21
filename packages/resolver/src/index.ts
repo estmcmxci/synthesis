@@ -28,6 +28,14 @@ export {
 } from "./utils/ens.js";
 
 export {
+  extractCid,
+  fetchFromIpfs,
+  fetchJsonFromIpfs,
+  cidToUri,
+  cidToGatewayUrl,
+} from "./utils/ipfs.js";
+
+export {
   encodeErc7930Address,
   decodeErc7930Address,
   buildEnsip25Key,
