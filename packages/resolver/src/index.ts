@@ -17,3 +17,12 @@ export {
   resolvePersonhood,
   type ResolvePersonhoodOptions,
 } from "./layers/personhood.js";
+
+export {
+  createEnsClient,
+  normalizeName,
+  getTextRecord,
+  getTextRecords,
+  resolveAddress,
+  getOwner,
+} from "./utils/ens.js";
