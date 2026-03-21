@@ -28,6 +28,7 @@ import {
 } from "../config/deployments";
 import { createChainPublicClient, createChainWalletClient } from "../utils/viem";
 import { buildEnsip25Key } from "../utils/erc7930";
+import { resolvePersonhood } from "@synthesis/resolver";
 
 /**
  * Register an agent on ERC-8004 Identity Registry
@@ -321,6 +322,26 @@ export async function agentInfo(options: AgentInfoOptions) {
 
 		console.log(`  ${colors.blue("8004scan:")} https://8004.app/agent/${agentId}`);
 		console.log(`  ${colors.blue("Explorer:")} ${agentChain.explorerUrl}/address/${agentChain.identityRegistry8004}`);
+
+		// ENSIP-25 linkage check
+		const ensip25Key = buildEnsip25Key(agentChain.chainId, agentChain.identityRegistry8004, agentId);
+		console.log();
+		console.log(`  ${colors.blue("ENSIP-25 key:")} ${colors.dim(ensip25Key)}`);
+
+		// Personhood check on the owner address
+		startSpinner("Checking personhood...");
+		const personhood = await resolvePersonhood(owner, {
+			networks: ["base", "world"],
+		});
+		stopSpinner();
+
+		if (personhood.verified) {
+			console.log(`  ${colors.green("✓")} ${colors.blue("Personhood:")} World ID verified`);
+			console.log(`    ${colors.dim(`Nullifier: ${personhood.nullifierHash?.slice(0, 16)}...`)}`);
+			console.log(`    ${colors.dim(`Network: ${personhood.network}`)}`);
+		} else {
+			console.log(`  ${colors.red("✗")} ${colors.blue("Personhood:")} not registered in AgentBook`);
+		}
 	} catch (error) {
 		stopSpinner();
 		const e = error as Error;
