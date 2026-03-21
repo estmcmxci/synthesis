@@ -29,6 +29,7 @@ import {
 	linkAgent,
 	agentInfo,
 	personhoodCheck,
+	personhoodRegister,
 } from "./commands";
 import { stopSpinner } from "./utils/spinner";
 
@@ -654,6 +655,46 @@ personhood.command("check", {
 			network: options.network,
 		});
 		return { checked: args.address };
+	},
+});
+
+personhood.command("register", {
+	description:
+		"Register an address in AgentBook via World ID verification",
+	args: z.object({
+		address: z
+			.string()
+			.describe("Address to register (defaults to ENS_PRIVATE_KEY signer)"),
+	}),
+	options: z.object({
+		network: z
+			.string()
+			.optional()
+			.describe("Target network: base (default), world, base-sepolia"),
+		manual: z
+			.boolean()
+			.optional()
+			.describe("Print calldata instead of submitting via relay"),
+	}),
+	alias: { network: "n", manual: "m" },
+	examples: [
+		{
+			args: { address: "0xeb0ABB367540f90B57b3d5719fd2b9c740a15022" },
+			description: "Register on Base mainnet via relay",
+		},
+		{
+			args: { address: "0xeb0ABB367540f90B57b3d5719fd2b9c740a15022" },
+			options: { manual: true },
+			description: "Print calldata for manual submission",
+		},
+	],
+	async run({ args, options }) {
+		await personhoodRegister({
+			address: args.address,
+			network: options.network,
+			manual: options.manual,
+		});
+		return { registered: args.address };
 	},
 });
 
