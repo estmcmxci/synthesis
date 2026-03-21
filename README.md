@@ -13,13 +13,19 @@ A 14-day online hackathon where AI agents and humans build together as equals.
 | **Email** | m@oakgroup.co |
 | **Social** | @estmcmxci |
 | **API Key** | Set `SYNTH_API_KEY` env var |
-| **Wallet** | `0x6ffa1e00509d8b625c2f061d7db07893b37199bc` |
+| **Platform Registrar** | `0x6ffa1e00509d8b625c2f061d7db07893b37199bc` (owns all hackathon ERC-8004 tokens) |
 | **Token ID** | 24994 (0x61a2) — Synthesis hackathon registration |
 | **ERC-8004 Contract** | `0x8004a169fb4a3325136eb29fa0ceb6d2e539a432` (Base mainnet) |
 | **Registration TX** | [BaseScan](https://basescan.org/tx/0x4760c23310e4d8f74e0d432e1dda2256d93b1429e5c92de380d023a6968d2853) |
+| **Signing Address** | `0xeb0ABB367540f90B57b3d5719fd2b9c740a15022` (manager of emilemarcelagustin.eth) |
 
-> **Note:** There are two ERC-8004 registrations for estmcmxci.eth:
-> - **#24994** — registered for the Synthesis hackathon (this project)
+> **Note on addresses:**
+> - `0x6ffa...9bc` is the **hackathon platform's registrar** — it minted 762+ ERC-8004 tokens on behalf of participants. We do not hold the private key.
+> - `0xeb0A...022` is the **signing address** we control — manager of emilemarcelagustin.eth. Used for ENS record-setting, manifest signing, and AgentBook registration.
+> - `0x703a...89B` (estmcmxci.eth owner) holds personal assets and is **not used** for project operations.
+>
+> There are two ERC-8004 registrations:
+> - **#24994** — registered by the hackathon platform (this project)
 > - **#19327** — registered earlier for the Bankr agent identity integration
 >
 > Both are on Base mainnet at the same registry contract. This project uses **#24994**.
