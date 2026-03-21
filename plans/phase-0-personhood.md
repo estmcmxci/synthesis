@@ -111,11 +111,15 @@ This handles the full World ID QR code flow (displays QR → user scans with Wor
 
 **What**: Actually run the registration for our agent wallet.
 
-**Address to register**: `0x703ae03fB120eC91e9Ed6d08Ce8044E498CC789B` (estmcmxci.eth owner)
+**Address to register**: `0xeb0ABB367540f90B57b3d5719fd2b9c740a15022` (manager of emilemarcelagustin.eth)
+
+> **Security note**: We use the emilemarcelagustin.eth manager address, NOT the estmcmxci.eth
+> owner (`0x703a...89B`) which holds personal assets. Private key for `0xeb0A...022` is stored
+> in `.env` as `ENS_PRIVATE_KEY`.
 
 **This is a human task** — requires biometric World ID verification via the Orb or World App. Can be done after SYN-47 is built by running:
 ```bash
-ensemble personhood register --address 0x703ae03fB120eC91e9Ed6d08Ce8044E498CC789B --network base
+ensemble personhood register --address 0xeb0ABB367540f90B57b3d5719fd2b9c740a15022 --network base
 ```
 
 ## PRD Update Required

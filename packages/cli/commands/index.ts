@@ -16,3 +16,4 @@ export { nameContract } from "./name";
 export { renew } from "./renew";
 export { transfer } from "./transfer";
 export { registerAgent, linkAgent, agentInfo } from "./agent";
+export { personhoodCheck } from "./personhood";

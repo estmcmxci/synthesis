@@ -28,6 +28,7 @@ import {
 	registerAgent,
 	linkAgent,
 	agentInfo,
+	personhoodCheck,
 } from "./commands";
 import { stopSpinner } from "./utils/spinner";
 
@@ -614,6 +615,49 @@ agent.command("info", {
 });
 
 cli.command(agent);
+
+// =============================================================================
+// Personhood Subcommand Group (World ID + AgentBook)
+// =============================================================================
+
+const personhood = Cli.create("personhood", {
+	description: "World ID proof-of-personhood verification",
+});
+
+personhood.command("check", {
+	description:
+		"Check if an address is backed by a verified human in AgentBook",
+	args: z.object({
+		address: z.string().describe("Ethereum address to check"),
+	}),
+	options: z.object({
+		network: z
+			.string()
+			.optional()
+			.describe("AgentBook network: base (default), world, base-sepolia"),
+	}),
+	alias: { network: "n" },
+	examples: [
+		{
+			args: { address: "0xeb0ABB367540f90B57b3d5719fd2b9c740a15022" },
+			description: "Check personhood on Base + World Chain",
+		},
+		{
+			args: { address: "0xeb0ABB367540f90B57b3d5719fd2b9c740a15022" },
+			options: { network: "world" },
+			description: "Check only on World Chain",
+		},
+	],
+	async run({ args, options }) {
+		await personhoodCheck({
+			address: args.address,
+			network: options.network,
+		});
+		return { checked: args.address };
+	},
+});
+
+cli.command(personhood);
 
 // =============================================================================
 // Serve

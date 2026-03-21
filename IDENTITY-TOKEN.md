@@ -78,8 +78,8 @@ const tokenAddress = await clanker.deployToken({
   },
   rewardsConfig: {
     creatorReward: 80,
-    creatorAdmin: "0x703ae03fB120eC91e9Ed6d08Ce8044E498CC789B",
-    creatorRewardRecipient: "0x703ae03fB120eC91e9Ed6d08Ce8044E498CC789B",
+    creatorAdmin: "0xeb0ABB367540f90B57b3d5719fd2b9c740a15022",
+    creatorRewardRecipient: "0xeb0ABB367540f90B57b3d5719fd2b9c740a15022",
   },
 });
 ```
