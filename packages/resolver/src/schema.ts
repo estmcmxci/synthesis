@@ -46,6 +46,35 @@ export const ContextResultSchema = z.object({
 
 export type ContextResult = z.infer<typeof ContextResultSchema>;
 
+export const AgentManifestSignatureSchema = z.object({
+  scheme: z.string(),
+  value: z.string(),
+});
+
+export const AgentManifestSchema = z.object({
+  schema: z.string(),
+  ensName: z.string(),
+  version: z.string(),
+  prev: z.string().nullable(),
+  payload: z.record(z.unknown()),
+  manifestHash: z.string().optional(),
+  signature: AgentManifestSignatureSchema,
+});
+
+export type AgentManifest = z.infer<typeof AgentManifestSchema>;
+
+export const ManifestResultSchema = z.object({
+  found: z.boolean(),
+  latestVersion: z.string().nullable(),
+  lineageMode: z.string().nullable(),
+  manifest: AgentManifestSchema.nullable(),
+  signatureValid: z.boolean(),
+  lineageDepth: z.number(),
+  lineageIntact: z.boolean(),
+});
+
+export type ManifestResult = z.infer<typeof ManifestResultSchema>;
+
 export const TrustProfileSchema = z.object({
   name: z.string(),
   address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),

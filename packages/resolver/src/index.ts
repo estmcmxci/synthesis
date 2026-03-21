@@ -11,10 +11,15 @@ export {
   PersonhoodResultSchema,
   IdentityResultSchema,
   ContextResultSchema,
+  AgentManifestSchema,
+  AgentManifestSignatureSchema,
+  ManifestResultSchema,
   type TrustProfile,
   type PersonhoodResult,
   type IdentityResult,
   type ContextResult,
+  type AgentManifest,
+  type ManifestResult,
 } from "./schema.js";
 
 export {
@@ -31,6 +36,11 @@ export {
   resolveContext,
   type ResolveContextOptions,
 } from "./layers/context.js";
+
+export {
+  resolveManifest,
+  type ResolveManifestOptions,
+} from "./layers/manifest.js";
 
 export {
   createEnsClient,
