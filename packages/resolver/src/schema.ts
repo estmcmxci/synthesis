@@ -37,6 +37,15 @@ export const IdentityResultSchema = z.object({
 
 export type IdentityResult = z.infer<typeof IdentityResultSchema>;
 
+export const ContextResultSchema = z.object({
+  found: z.boolean(),
+  raw: z.string().nullable(),
+  parsed: z.record(z.unknown()).nullable(),
+  skillUrl: z.string().nullable(),
+});
+
+export type ContextResult = z.infer<typeof ContextResultSchema>;
+
 export const TrustProfileSchema = z.object({
   name: z.string(),
   address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
