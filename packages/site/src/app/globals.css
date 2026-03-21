@@ -1,1 +1,85 @@
 @import "tailwindcss";
+
+@theme {
+  --color-surface: #fafaf9;
+  --color-surface-raised: #f5f5f4;
+  --color-surface-sunken: #e7e5e4;
+  --color-ink: #1a1a1a;
+  --color-ink-muted: #78716c;
+  --color-ink-faint: #a8a29e;
+  --color-accent: #2563eb;
+  --color-accent-hover: #1d4ed8;
+  --color-pass: #16a34a;
+  --color-fail: #dc2626;
+  --color-border: #d6d3d1;
+  --color-sidebar: #ffffff;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", monospace;
+}
+
+html {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background-color: var(--color-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  line-height: 1.6;
+}
+
+::selection {
+  background-color: var(--color-accent);
+  color: white;
+}
+
+/* Sidebar active link indicator */
+.nav-link {
+  position: relative;
+  transition: color 150ms ease;
+}
+
+.nav-link:hover {
+  color: var(--color-ink);
+}
+
+.nav-link::before {
+  content: "";
+  position: absolute;
+  left: -16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 0;
+  background-color: var(--color-accent);
+  border-radius: 2px;
+  transition: height 150ms ease;
+}
+
+.nav-link:hover::before {
+  height: 16px;
+}
+
+/* Staggered entrance animation */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.6s ease-out both;
+}
+
+.delay-1 { animation-delay: 0.1s; }
+.delay-2 { animation-delay: 0.2s; }
+.delay-3 { animation-delay: 0.3s; }
+.delay-4 { animation-delay: 0.4s; }
+.delay-5 { animation-delay: 0.5s; }
