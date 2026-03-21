@@ -19,6 +19,32 @@ export const metadata: Metadata = {
   },
 };
 
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Person",
+  name: "Émile Marcel Agustín",
+  alternateName: "estmcmxci",
+  url: "https://emilemarcelagustin.eth.limo",
+  sameAs: [
+    "https://twitter.com/estmcmxci",
+    "https://app.ens.domains/emilemarcelagustin.eth",
+  ],
+  identifier: {
+    "@type": "PropertyValue",
+    name: "ENS Name",
+    value: "emilemarcelagustin.eth",
+  },
+  knowsAbout: [
+    "Trust Resolution Layer",
+    "ENS",
+    "ENSIP-25",
+    "ENSIP-26",
+    "ERC-8004",
+    "Agent Identity Profile",
+    "World ID",
+  ],
+};
+
 export default function RootLayout({
   children,
 }: {
@@ -26,6 +52,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
+        <link
+          rel="alternate"
+          type="text/markdown"
+          href="/skill.md"
+          title="SKILL.md — machine-readable capabilities"
+        />
+      </head>
       <body className="bg-[var(--color-surface)] text-[var(--color-ink)]">
         <Sidebar />
         <main className="md:ml-64 min-h-screen">
