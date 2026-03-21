@@ -83,3 +83,58 @@ body {
 .delay-3 { animation-delay: 0.3s; }
 .delay-4 { animation-delay: 0.4s; }
 .delay-5 { animation-delay: 0.5s; }
+
+/* Essay prose styling */
+.prose-essay p {
+  margin-top: 1em;
+  font-size: 0.9375rem;
+  line-height: 1.75;
+  color: var(--color-ink);
+}
+
+.prose-essay p:first-child {
+  margin-top: 0;
+}
+
+.prose-essay h2 {
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--color-ink);
+}
+
+.prose-essay strong {
+  font-weight: 600;
+}
+
+.prose-essay em {
+  font-style: italic;
+}
+
+.prose-essay blockquote {
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  padding-left: 1rem;
+  border-left: 3px solid var(--color-border);
+  color: var(--color-ink-muted);
+  font-style: italic;
+}
+
+.prose-essay blockquote p {
+  color: var(--color-ink-muted);
+}
+
+.prose-essay ol {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  padding-left: 1.5rem;
+  list-style-type: decimal;
+}
+
+.prose-essay ol li {
+  margin-top: 0.375rem;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+}
