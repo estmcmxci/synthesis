@@ -26,6 +26,17 @@ export const PersonhoodResultSchema = z.object({
 
 export type PersonhoodResult = z.infer<typeof PersonhoodResultSchema>;
 
+export const IdentityResultSchema = z.object({
+  verified: z.boolean(),
+  registryAddress: z.string().nullable(),
+  agentId: z.string().nullable(),
+  registryChain: z.string().nullable(),
+  tokenURI: z.string().nullable(),
+  owner: z.string().nullable(),
+});
+
+export type IdentityResult = z.infer<typeof IdentityResultSchema>;
+
 export const TrustProfileSchema = z.object({
   name: z.string(),
   address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),

@@ -9,14 +9,21 @@ export {
   TrustProfileSchema,
   AgentBookNetwork,
   PersonhoodResultSchema,
+  IdentityResultSchema,
   type TrustProfile,
   type PersonhoodResult,
+  type IdentityResult,
 } from "./schema.js";
 
 export {
   resolvePersonhood,
   type ResolvePersonhoodOptions,
 } from "./layers/personhood.js";
+
+export {
+  resolveIdentity,
+  type ResolveIdentityOptions,
+} from "./layers/identity.js";
 
 export {
   createEnsClient,
