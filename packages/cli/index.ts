@@ -36,6 +36,7 @@ import {
 	manifestVerify,
 	contextGet,
 	contextSet,
+	skillFetch,
 } from "./commands";
 import { stopSpinner } from "./utils/spinner";
 
@@ -877,6 +878,31 @@ context.command("set", {
 });
 
 cli.command(context);
+
+// =============================================================================
+// Skill Command (DVS)
+// =============================================================================
+
+cli.command("skill", {
+	description: "Fetch a SKILL.md and verify domain ownership against an ENS name",
+	args: z.object({
+		name: z.string().describe("ENS name to verify against"),
+		url: z.string().describe("URL or IPFS URI of the SKILL.md"),
+	}),
+	examples: [
+		{
+			args: {
+				name: "emilemarcelagustin.eth",
+				url: "https://emilemarcelagustin.eth.limo/skill.md",
+			},
+			description: "Fetch and verify SKILL.md",
+		},
+	],
+	async run({ args }) {
+		await skillFetch({ name: args.name, url: args.url });
+		return { fetched: args.url };
+	},
+});
 
 // =============================================================================
 // Serve
