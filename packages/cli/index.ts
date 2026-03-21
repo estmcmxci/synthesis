@@ -31,6 +31,9 @@ import {
 	personhoodCheck,
 	personhoodRegister,
 	trust as trustCmd,
+	manifestCreate,
+	manifestPin,
+	manifestVerify,
 } from "./commands";
 import { stopSpinner } from "./utils/spinner";
 
@@ -737,6 +740,81 @@ personhood.command("register", {
 });
 
 cli.command(personhood);
+
+// =============================================================================
+// Manifest Subcommand Group (AIP V2)
+// =============================================================================
+
+const manifest = Cli.create("manifest", {
+	description: "AIP manifest lifecycle — create, pin, and verify",
+});
+
+manifest.command("create", {
+	description: "Create a signed AIP manifest (EIP-191)",
+	args: z.object({
+		name: z.string().describe("ENS name for the manifest"),
+	}),
+	options: z.object({
+		ver: z.string().optional().describe("Version identifier (default: v1)"),
+		prev: z.string().optional().describe("Previous manifest CID (null for genesis)"),
+		payload: z.string().optional().describe("Payload as JSON string"),
+		output: z.string().optional().describe("Output file path (prints to stdout if omitted)"),
+	}),
+	alias: { prev: "p", payload: "d", output: "o" },
+	examples: [
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			options: { version: "v1", output: "manifest-v1.json" },
+			description: "Create genesis manifest",
+		},
+	],
+	async run({ args, options }) {
+		await manifestCreate({
+			name: args.name,
+			version: options.ver ?? "v1",
+			prev: options.prev,
+			payload: options.payload,
+			output: options.output,
+		});
+		return { created: args.name };
+	},
+});
+
+manifest.command("pin", {
+	description: "Pin a manifest JSON file to IPFS via Pinata",
+	args: z.object({
+		file: z.string().describe("Path to manifest JSON file"),
+	}),
+	examples: [
+		{
+			args: { file: "manifest-v1.json" },
+			description: "Pin manifest to IPFS",
+		},
+	],
+	async run({ args }) {
+		await manifestPin({ file: args.file });
+		return { pinned: args.file };
+	},
+});
+
+manifest.command("verify", {
+	description: "Verify an AIP manifest for an ENS name",
+	args: z.object({
+		name: z.string().describe("ENS name to verify"),
+	}),
+	examples: [
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			description: "Verify manifest signature and lineage",
+		},
+	],
+	async run({ args }) {
+		await manifestVerify({ name: args.name });
+		return { verified: args.name };
+	},
+});
+
+cli.command(manifest);
 
 // =============================================================================
 // Serve
