@@ -75,6 +75,15 @@ export const ManifestResultSchema = z.object({
 
 export type ManifestResult = z.infer<typeof ManifestResultSchema>;
 
+export const SkillResultSchema = z.object({
+  found: z.boolean(),
+  domainVerified: z.boolean(),
+  content: z.string().nullable(),
+  url: z.string().nullable(),
+});
+
+export type SkillResult = z.infer<typeof SkillResultSchema>;
+
 export const TrustProfileSchema = z.object({
   name: z.string(),
   address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
