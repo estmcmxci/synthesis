@@ -4,6 +4,8 @@
  * ENS identity resolution, trust scoring, and verification.
  */
 
+export { resolve, type ResolveOptions } from "./resolve.js";
+
 export {
   TrustTier,
   TrustProfileSchema,

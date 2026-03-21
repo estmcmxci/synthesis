@@ -85,13 +85,25 @@ export const SkillResultSchema = z.object({
 export type SkillResult = z.infer<typeof SkillResultSchema>;
 
 export const TrustProfileSchema = z.object({
-  name: z.string(),
-  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/),
-  tier: TrustTier,
-  personhood: PersonhoodResultSchema,
-  ensRecords: z.record(z.string()).optional(),
-  agentId: z.string().optional(),
+  ensName: z.string(),
+  address: z.string().regex(/^0x[a-fA-F0-9]{40}$/).nullable(),
   resolvedAt: z.number(),
+  trustScore: TrustTier,
+
+  // Resolution Layer 0: Personhood (World ID)
+  personhood: PersonhoodResultSchema,
+
+  // Resolution Layer 1: Identity (ENSIP-25)
+  identity: IdentityResultSchema,
+
+  // Resolution Layer 2: Discovery (ENSIP-26)
+  context: ContextResultSchema,
+
+  // Resolution Layer 3: Integrity (AIP)
+  manifest: ManifestResultSchema,
+
+  // Resolution Layer 4: Capability (DVS)
+  skill: SkillResultSchema,
 });
 
 export type TrustProfile = z.infer<typeof TrustProfileSchema>;
