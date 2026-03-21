@@ -30,6 +30,7 @@ import {
 	agentInfo,
 	personhoodCheck,
 	personhoodRegister,
+	trust as trustCmd,
 } from "./commands";
 import { stopSpinner } from "./utils/spinner";
 
@@ -66,6 +67,43 @@ cli.use(async (_c, next) => {
 			// Ignore errors during cleanup
 		}
 	}
+});
+
+// =============================================================================
+// Trust Resolution
+// =============================================================================
+
+cli.command("trust", {
+	description:
+		"Resolve an ENS name through all 5 trust layers and display the trust profile",
+	args: z.object({
+		name: z.string().describe("ENS name to resolve (e.g., emilemarcelagustin.eth)"),
+	}),
+	options: z.object({
+		agentId: z
+			.array(z.string())
+			.optional()
+			.describe("Known agent IDs to scan for ENSIP-25 records (can repeat)"),
+	}),
+	alias: { agentId: "a" },
+	examples: [
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			description: "Full trust resolution",
+		},
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			options: { agentId: ["24994"] },
+			description: "Resolve with known agent ID",
+		},
+	],
+	async run({ args, options }) {
+		await trustCmd({
+			name: args.name,
+			agentIds: options.agentId,
+		});
+		return { resolved: args.name };
+	},
 });
 
 // =============================================================================
