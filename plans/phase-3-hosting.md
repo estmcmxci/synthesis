@@ -12,9 +12,10 @@ Linear epic: SYN-8 · GitHub milestone: Phase 3: Hosting · Due: Mar 29
 
 | Issue | Task | Depends on | Status |
 |-------|------|------------|--------|
-| **SYN-33** | Set up IPFS pinning (OmniPin + Pinata) | — | |
-| **SYN-34** | Build `ensemble deploy` CLI command | SYN-33 | |
-| **SYN-35** | Set ENS records on emilemarcelagustin.eth | Deploy done | |
+| ~~SYN-33~~ | Set up IPFS pinning (OmniPin + Storacha) | — | Done (PR #25) |
+| ~~SYN-34~~ | Build `ensemble deploy` CLI command | SYN-33 | Done (PR #26) |
+| **SYN-49** | Deploy site to Vercel | — | Next |
+| **SYN-35** | Set ENS records on emilemarcelagustin.eth | SYN-49 | |
 | **SYN-36** | Create + sign + pin AIP v1 manifest | SYN-33, SYN-35 | |
 | **SYN-37** | Verify at emilemarcelagustin.eth.limo + `ensemble trust` | All above | |
 
@@ -28,15 +29,24 @@ Linear epic: SYN-8 · GitHub milestone: Phase 3: Hosting · Due: Mar 29
 
 ## Implementation Details
 
-### Deploy to Vercel
+### SYN-49: Deploy to Vercel
 
-Connect the repo to Vercel. Configure:
-- Root directory: `packages/site`
-- Build command: `pnpm build`
-- Output: `.next`
-- Framework: Next.js
+Deploy the site to Vercel from the monorepo root.
 
-The site will be accessible at a Vercel URL (e.g., `synthesis-trl.vercel.app`) and later via ENS gateway.
+**Configuration:**
+- vercel.json already exists at repo root with:
+  - `buildCommand`: `pnpm build:resolver && cd packages/site && next build`
+  - `outputDirectory`: `packages/site/.next`
+  - `framework`: `nextjs`
+  - `installCommand`: `pnpm install`
+- Project name: `ensemble` (repo stays `synthesis`)
+
+**Steps:**
+1. Link repo to Vercel project via CLI
+2. Deploy to production
+3. Note the Vercel URL for use in `agent-context` (SYN-35)
+
+The site will be accessible at a Vercel URL and later via ENS gateway at `emilemarcelagustin.eth.limo`.
 
 ### SYN-33: IPFS pinning setup
 
