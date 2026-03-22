@@ -10,6 +10,9 @@
     "build:cli": "pnpm --filter @synthesis/cli build",
     "build:site": "pnpm --filter @synthesis/site build",
     "dev:site": "pnpm --filter @synthesis/site dev",
+    "deploy:vercel": "pnpm build:resolver && pnpm build:site",
+    "deploy:ipfs": "pnpm build:resolver && cd packages/site && NEXT_OUTPUT=export next build && cd ../.. && npx omnipin deploy packages/site/out",
+    "pin": "npx omnipin pin",
     "lint": "pnpm -r lint",
     "format": "pnpm -r format"
   },
