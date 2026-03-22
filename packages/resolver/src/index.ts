@@ -73,7 +73,5 @@ export {
   decodeErc7930Address,
   buildEnsip25Key,
   parseEnsip25Key,
-  chainIdToUleb128,
-  uleb128ToChainId,
   KNOWN_REGISTRIES,
 } from "./utils/erc7930.js";
