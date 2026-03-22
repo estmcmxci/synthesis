@@ -21,3 +21,4 @@ export { trust } from "./trust";
 export { manifestCreate, manifestPin, manifestVerify } from "./manifest";
 export { contextGet, contextSet } from "./context";
 export { skillFetch } from "./skill";
+export { deploy } from "./deploy";

@@ -37,6 +37,7 @@ import {
 	contextGet,
 	contextSet,
 	skillFetch,
+	deploy as deployCmd,
 } from "./commands";
 import { stopSpinner } from "./utils/spinner";
 
@@ -901,6 +902,43 @@ cli.command("skill", {
 	async run({ args }) {
 		await skillFetch({ name: args.name, url: args.url });
 		return { fetched: args.url };
+	},
+});
+
+// =============================================================================
+// Deploy Command
+// =============================================================================
+
+cli.command("deploy", {
+	description: "Deploy a directory to IPFS via OmniPin + Storacha",
+	args: z.object({
+		dir: z.string().describe("Directory to deploy"),
+	}),
+	options: z.object({
+		ens: z.string().optional().describe("ENS name to set contenthash on"),
+		chain: z.string().optional().describe("Chain for ENS contenthash (default: mainnet)"),
+		dryRun: z.boolean().optional().describe("Dry run — no transactions sent"),
+	}),
+	alias: { ens: "e", chain: "c" },
+	examples: [
+		{
+			args: { dir: "packages/site/out" },
+			description: "Pin to IPFS only",
+		},
+		{
+			args: { dir: "packages/site/out" },
+			options: { ens: "emilemarcelagustin.eth" },
+			description: "Pin to IPFS + set ENS contenthash",
+		},
+	],
+	async run({ args, options }) {
+		await deployCmd({
+			dir: args.dir,
+			ens: options.ens,
+			chain: options.chain,
+			dryRun: options.dryRun,
+		});
+		return { deployed: args.dir };
 	},
 });
 
