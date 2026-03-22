@@ -43,8 +43,8 @@ interface RegistryTarget {
 }
 
 const DEFAULT_REGISTRIES: RegistryTarget[] = [
-  { chainId: KNOWN_REGISTRIES.base.chainId, address: KNOWN_REGISTRIES.base.address },
-  { chainId: KNOWN_REGISTRIES.ethereum.chainId, address: KNOWN_REGISTRIES.ethereum.address },
+  { chainId: KNOWN_REGISTRIES["8004-base"].chainId, address: KNOWN_REGISTRIES["8004-base"].address },
+  { chainId: KNOWN_REGISTRIES["8004-ethereum"].chainId, address: KNOWN_REGISTRIES["8004-ethereum"].address },
 ];
 
 /** Chain ID → viem chain config for creating clients */
