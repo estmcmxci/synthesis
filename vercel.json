@@ -1,6 +1,5 @@
 {
-  "buildCommand": "pnpm --filter @synthesis/resolver build && cd packages/site && next build",
+  "buildCommand": "pnpm --filter @synthesis/resolver build && pnpm --filter @synthesis/site build",
   "installCommand": "pnpm install",
-  "framework": "nextjs",
   "outputDirectory": "packages/site/.next"
 }
