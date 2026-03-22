@@ -6,7 +6,6 @@ import { resolveENSName } from "./actions";
 
 export function ResolverForm() {
   const [name, setName] = useState("emilemarcelagustin.eth");
-  const [agentIds, setAgentIds] = useState("24994");
   const [profile, setProfile] = useState<TrustProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -17,11 +16,7 @@ export function ResolverForm() {
     setProfile(null);
 
     startTransition(async () => {
-      const ids = agentIds
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      const result = await resolveENSName(name, ids);
+      const result = await resolveENSName(name);
       if (result.error) {
         setError(result.error);
       } else {
@@ -47,26 +42,6 @@ export function ResolverForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="vitalik.eth"
-            className="w-full px-3 py-2 text-sm bg-white border border-[var(--color-border)] rounded-md text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-colors font-mono"
-          />
-        </div>
-
-        <div>
-          <label
-            htmlFor="agent-ids"
-            className="block text-xs font-medium uppercase tracking-widest text-[var(--color-ink-muted)] mb-1.5"
-          >
-            Agent IDs
-            <span className="ml-1 font-normal normal-case tracking-normal text-[var(--color-ink-faint)]">
-              (comma-separated, optional)
-            </span>
-          </label>
-          <input
-            id="agent-ids"
-            type="text"
-            value={agentIds}
-            onChange={(e) => setAgentIds(e.target.value)}
-            placeholder="24994"
             className="w-full px-3 py-2 text-sm bg-white border border-[var(--color-border)] rounded-md text-[var(--color-ink)] placeholder:text-[var(--color-ink-faint)] focus:outline-none focus:border-[var(--color-accent)] focus:ring-1 focus:ring-[var(--color-accent)] transition-colors font-mono"
           />
         </div>
