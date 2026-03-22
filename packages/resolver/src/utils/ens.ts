@@ -18,11 +18,14 @@ const DEFAULT_RPC = "https://eth.drpc.org";
 
 /**
  * Create a public client configured for ENS resolution on mainnet.
+ *
+ * Priority: explicit rpcUrl > ETH_RPC_URL env var > default (eth.drpc.org)
  */
 export function createEnsClient(rpcUrl?: string): PublicClient {
+  const url = rpcUrl ?? process.env.ETH_RPC_URL ?? DEFAULT_RPC;
   return createPublicClient({
     chain: mainnet,
-    transport: http(rpcUrl ?? DEFAULT_RPC),
+    transport: http(url),
   });
 }
 
