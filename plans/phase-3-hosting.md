@@ -12,7 +12,7 @@ Linear epic: SYN-8 · GitHub milestone: Phase 3: Hosting · Due: Mar 29
 
 | Issue | Task | Depends on | Status |
 |-------|------|------------|--------|
-| **SYN-33** | Set up IPFS pinning (OmniPin + Pinata) | — | |
+| ~~SYN-33~~ | Set up IPFS pinning (OmniPin + Storacha) | — | Done (PR #25) |
 | **SYN-34** | Build `ensemble deploy` CLI command | SYN-33 | |
 | **SYN-35** | Set ENS records on emilemarcelagustin.eth | Deploy done | |
 | **SYN-36** | Create + sign + pin AIP v1 manifest | SYN-33, SYN-35 | |
@@ -38,17 +38,20 @@ Connect the repo to Vercel. Configure:
 
 The site will be accessible at a Vercel URL (e.g., `synthesis-trl.vercel.app`) and later via ENS gateway.
 
-### SYN-33: IPFS pinning setup
+### SYN-33: IPFS pinning setup (DONE)
 
-Use OmniPin (already installed as root devDep) for the static export:
+OmniPin configured with Storacha (not Pinata — free plan doesn't support CAR uploads).
+
 ```bash
-npx omnipin deploy ./packages/site/out --provider pinata
+# Env vars required:
+OMNIPIN_STORACHA_TOKEN=<ed25519 private key>
+OMNIPIN_STORACHA_PROOF=<UCAN delegation with space/blob/add, upload/add>
 ```
 
-Requires:
-- `next.config.ts` updated with `output: 'export'` for static pages
-- PINATA_JWT in `.env`
-- Note: `/trust` and `/resolve` use Server Actions — they won't work in static export. The IPFS mirror serves `/`, `/essay`, `/token`, `/skill.md` only.
+Verified: test directory pinned to IPFS via OmniPin + Storacha.
+Storacha handles all IPFS pinning — site deployment and manifest files.
+
+Note: `/trust` and `/resolve` use Server Actions — they won't work in static export. The IPFS mirror serves `/`, `/essay`, `/token`, `/skill.md` only.
 
 ### SYN-34: `ensemble deploy` CLI command
 
@@ -109,8 +112,8 @@ ensemble manifest create emilemarcelagustin.eth --ver v1 \
   --payload '{"endpoints":["https://emilemarcelagustin.eth.limo"],"capabilities":["trust-resolution","ens-identity"]}' \
   -o manifest-v1.json
 
-# Pin to IPFS
-ensemble manifest pin manifest-v1.json
+# Pin to IPFS via Storacha
+npx @storacha/cli up manifest-v1.json
 # → Returns CID, use in SYN-35 for agent-manifest record
 ```
 
