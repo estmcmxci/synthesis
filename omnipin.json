@@ -1,6 +1,3 @@
 {
-  "providers": ["pinata"],
-  "pinata": {
-    "jwt": "${PINATA_JWT}"
-  }
+  "providers": ["storacha"]
 }
