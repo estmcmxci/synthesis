@@ -13,9 +13,17 @@ const KNOWN_AGENT_IDS = ["24994"];
 export const dynamic = "force-dynamic";
 
 export default async function TrustPage() {
+  console.log("[trust] ETH_RPC_URL:", process.env.ETH_RPC_URL ? "set" : "NOT SET");
+  console.log("[trust] resolving", ENS_NAME);
+
   const profile = await resolve(ENS_NAME, {
     knownAgentIds: KNOWN_AGENT_IDS,
+    ensRpcUrl: process.env.ETH_RPC_URL,
   });
+
+  console.log("[trust] address:", profile.address);
+  console.log("[trust] personhood:", profile.personhood.verified);
+  console.log("[trust] trustScore:", profile.trustScore);
 
   return (
     <div className="px-8 md:px-16 py-16 md:py-24 max-w-2xl">
