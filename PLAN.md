@@ -31,30 +31,30 @@ The command-line tool for *writing* identity infrastructure and *reading* trust 
 
 ```bash
 # The headline command — resolve any ENS name through all 5 trust layers
-ensemble trust estmcmxci.eth
+ensemble trust emilemarcelagustin.eth
 # → Personhood: ✓ (World ID, nullifier: 0x3a...)
 # → Identity:   ✓ (ERC-8004 #24994, Base)
-# → Context:    ✓ (ENSIP-26, SKILL.md at skills.estmcmxci.eth)
+# → Context:    ✓ (ENSIP-26, SKILL.md at skills.emilemarcelagustin.eth)
 # → Manifest:   ✓ (AIP v1, signature valid, lineage depth: 1)
-# → Skill:      ✓ (domain-verified, served from estmcmxci.eth)
+# → Skill:      ✓ (domain-verified, served from emilemarcelagustin.eth)
 # → Trust Tier: full
 
 # Set all the records needed to become "full" trust
-ensemble agent register estmcmxci.eth --link --chain base
-ensemble edit txt estmcmxci.eth agent-context '{"skill":"https://skills.estmcmxci.eth/skill.md"}'
+ensemble agent register emilemarcelagustin.eth --link --chain base
+ensemble edit txt emilemarcelagustin.eth agent-context '{"skill":"https://skills.emilemarcelagustin.eth/skill.md"}'
 ensemble manifest create --sign --pin  # → ipfs://Qm...
-ensemble edit txt v1.estmcmxci.eth agent-manifest ipfs://Qm...
+ensemble edit txt v1.emilemarcelagustin.eth agent-manifest ipfs://Qm...
 ```
 
-### 2. The Site (`estmcmxci.eth` / Vercel)
+### 2. The Site (`emilemarcelagustin.eth` / Vercel)
 
 The web UI that makes the TRL tangible:
 
 - `/` — Landing page, the thesis of deliberate legibility
 - `/essay` — "The Abstracted Self" (the intellectual foundation)
 - `/resolve` — Interactive TRL demo: type any ENS name, see all 5 layers resolve in real time
-- `/trust` — estmcmxci.eth's own live trust profile (the reference implementation *is* the demo)
-- `/token` — $ESTMCMXCI token profile (live price, trust profile, trading link, fee earnings)
+- `/trust` — emilemarcelagustin.eth's own live trust profile (the reference implementation *is* the demo)
+- `/token` — $IDENTITY_TOKEN token profile (live price, trust profile, trading link, fee earnings)
 - `/wallet` — Create a passkey-owned Safe, issue session keys scoped by trust tier
 
 ### 3. The Library (`@synthesis/resolver`)
@@ -63,7 +63,7 @@ The programmatic primitive that agents import:
 
 ```typescript
 import { resolve } from '@synthesis/resolver'
-const profile = await resolve('estmcmxci.eth')
+const profile = await resolve('emilemarcelagustin.eth')
 // profile.trustScore === 'full'
 // profile.personhood.verified === true
 // profile.identity.agentId === '24994'
@@ -118,7 +118,7 @@ Bankr CLI / API handles all routine crypto operations — token deployment (Clan
 
 | Operation | Via Bankr |
 |-----------|-----------|
-| Deploy $ESTMCMXCI | Bankr → Clanker factory on Base (one-time) |
+| Deploy $IDENTITY_TOKEN | Bankr → Clanker factory on Base (one-time) |
 | Claim trading fees | Bankr → claim accumulated WETH + token |
 | USDC transfers | Bankr → direct transfer or x402 payment |
 | Token swaps | Bankr → Uniswap routing |
@@ -203,7 +203,7 @@ synthesis/
         agentbook.ts           # NEW — World ID AgentBook contract reads
         ipfs.ts                # NEW — IPFS pin + fetch (shared with resolver)
         manifest.ts            # NEW — AIP manifest sign/verify helpers
-    site/                      # @synthesis/site — Next.js personal site (estmcmxci.eth)
+    site/                      # @synthesis/site — Next.js personal site (emilemarcelagustin.eth)
       package.json             # (exists) next 15, react 19, tailwind 4, @mdx-js/react, @synthesis/resolver
       next.config.ts           # (exists) MDX plugin
       tsconfig.json            # (exists)
@@ -215,8 +215,8 @@ synthesis/
           globals.css          # (exists) tailwind import
           essay/page.tsx       # /essay — "The Abstracted Self"
           resolve/page.tsx     # /resolve — interactive TRL demo
-          trust/page.tsx       # /trust — live trust profile for estmcmxci.eth
-          token/page.tsx       # /token — $ESTMCMXCI profile (price, trust, trading, fees)
+          trust/page.tsx       # /trust — live trust profile for emilemarcelagustin.eth
+          token/page.tsx       # /token — $IDENTITY_TOKEN profile (price, trust, trading, fees)
           wallet/page.tsx      # /wallet — passkey Safe creation + session keys
           skill.md/route.ts    # /skill.md — machine-readable capability file
         mdx-components.tsx     # (exists) MDX component overrides
@@ -225,7 +225,7 @@ synthesis/
           layer-badge.tsx      # per-layer pass/fail indicator
           lineage-chain.tsx    # AIP version lineage visualization
   scripts/
-    set-records.sh             # Set all ENS records for estmcmxci.eth
+    set-records.sh             # Set all ENS records for emilemarcelagustin.eth
     publish-manifest.sh        # Create + sign + pin AIP manifest to IPFS
   spec/
     aip-draft.md               # (exists) Agent Identity Profile spec (Resolution Layer 3)
@@ -249,7 +249,7 @@ Linear epic: SYN-5
   - AgentKit gives you a boolean. Synthesis gives you a gradient.
 - [ ] `ensemble personhood check <address>` — CLI command for AgentBook lookup
 - [ ] `ensemble personhood register` — register in AgentBook (human task — needs biometric)
-- [ ] Register estmcmxci.eth agent wallet in AgentBook via AgentKit CLI
+- [ ] Register emilemarcelagustin.eth agent wallet in AgentBook via AgentKit CLI
 
 ### Phase 1: Substrate — TRL Resolver Library (critical path, due Mar 25)
 
@@ -297,8 +297,8 @@ Linear epic: SYN-7 · GitHub milestone: Phase 2: Application
 - [ ] Build landing page (`/`) — identity + thesis of deliberate legibility
 - [ ] Publish "The Abstracted Self" as site content (`/essay`)
 - [ ] Build interactive TRL resolver (`/resolve`) — type any ENS name, see all 5 layers
-- [ ] Build live trust profile page (`/trust`) — estmcmxci.eth's own profile
-- [ ] Build token profile page (`/token`) — $ESTMCMXCI price, trust, trading, fees
+- [ ] Build live trust profile page (`/trust`) — emilemarcelagustin.eth's own profile
+- [ ] Build token profile page (`/token`) — $IDENTITY_TOKEN price, trust, trading, fees
 - [ ] Add machine-readable layer (JSON-LD, SKILL.md route, OG tags)
 
 ### Phase 3: Hosting — Dweb Deployment (due Mar 29)
@@ -307,22 +307,22 @@ Linear epic: SYN-8 · GitHub milestone: Phase 3: Hosting
 
 - [ ] Set up IPFS pinning (Pinata)
 - [ ] Build `ensemble deploy` CLI command (wraps OmniPin)
-- [ ] Set ENS records on estmcmxci.eth (ENSIP-25/26, AIP)
+- [ ] Set ENS records on emilemarcelagustin.eth (ENSIP-25/26, AIP)
   - Set ENSIP-25 record for Token #24994
   - Set ENSIP-26 `agent-context`
   - Set AIP records: `agent-latest`, `agent-version-lineage`
-  - Create `v1.estmcmxci.eth` subname, set `agent-manifest`
+  - Create `v1.emilemarcelagustin.eth` subname, set `agent-manifest`
 - [ ] Create + sign + pin AIP v1 manifest to IPFS
-- [ ] Host SKILL.md on ENS subdomain (skills.estmcmxci.eth via eth.limo)
-- [ ] Verify site at estmcmxci.eth.limo
+- [ ] Host SKILL.md on ENS subdomain (skills.emilemarcelagustin.eth via eth.limo)
+- [ ] Verify site at emilemarcelagustin.eth.limo
 
 ### Phase 4: Launch Ceremony (due Mar 31)
 
 Linear epic: SYN-9 · GitHub milestone: Phase 4: Launch Ceremony
 
 - [ ] Build `ensemble launch <name>` CLI command — the ceremony
-- [ ] Pin $ESTMCMXCI token image + metadata to IPFS
-- [ ] Execute launch ceremony — deploy $ESTMCMXCI on Base via Bankr → Clanker
+- [ ] Pin $IDENTITY_TOKEN token image + metadata to IPFS
+- [ ] Execute launch ceremony — deploy $IDENTITY_TOKEN on Base via Bankr → Clanker
   - Verifies TRL === full (all 5 layers pass)
   - Verifies site is live (contenthash set, gateway responding)
   - Confirms caller owns the ENS name
@@ -371,7 +371,7 @@ Linear epic: SYN-11
 ## Risks
 
 - **ENS record gas costs** — setting multiple text records on mainnet. Batch if possible.
-- **Subname creation** — `v1.estmcmxci.eth` requires either owning the name with a resolver that supports subnames, or using a service like NameWrapper.
+- **Subname creation** — `v1.emilemarcelagustin.eth` requires either owning the name with a resolver that supports subnames, or using a service like NameWrapper.
 - **IPFS gateway reliability** — have fallback gateways configured.
 - **AgentKit stability** — v0.1.5 (pre-1.0, proprietary license). Fallback: call AgentBook contract directly via viem `readContract()`.
 - **Timeline** — hackathon deadline Mar 31. Phase 1 (Substrate) due Mar 25, Phase 2 (Application) due Mar 28, Phase 3 (Hosting) due Mar 29.

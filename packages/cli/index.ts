@@ -574,7 +574,7 @@ agent.command("register", {
 	args: z.object({
 		name: z
 			.string()
-			.describe("ENS name to associate with the agent (e.g., estmcmxci.eth)"),
+			.describe("ENS name to associate with the agent (e.g., emilemarcelagustin.eth)"),
 	}),
 	options: z.object({
 		chain: z
@@ -621,7 +621,7 @@ agent.command("register", {
 	alias: { chain: "c", link: "l", network: "n" },
 	examples: [
 		{
-			args: { name: "estmcmxci.eth" },
+			args: { name: "emilemarcelagustin.eth" },
 			options: { link: true },
 			description: "Register agent and link to ENS name",
 		},
@@ -679,8 +679,8 @@ agent.command("link", {
 	alias: { chain: "c", network: "n" },
 	examples: [
 		{
-			args: { name: "estmcmxci.eth", agentId: "24994" },
-			description: "Link agent #24994 to estmcmxci.eth",
+			args: { name: "emilemarcelagustin.eth", agentId: "24994" },
+			description: "Link agent #24994 to emilemarcelagustin.eth",
 		},
 	],
 	async run({ args, options }) {

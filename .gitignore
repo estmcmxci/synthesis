@@ -29,3 +29,12 @@ log/
 
 # Package manager locks (keep pnpm-lock.yaml if using pnpm workspaces)
 package-lock.json
+
+# Vercel
+.vercel
+
+# Next.js generated
+next-env.d.ts
+
+# Environment (catch-all)
+.env*.local

@@ -148,7 +148,7 @@ Before setting records, the resolver needs updates to work with the new ERC-7930
 
 All records on `emilemarcelagustin.eth`. Signing address: `0xeb0ABB367540f90B57b3d5719fd2b9c740a15022`.
 
-**DO NOT** use `estmcmxci.eth` or `0x703a...89B` for any operations.
+**DO NOT** use the personal wallet for any operations.
 
 ## Gas Costs
 

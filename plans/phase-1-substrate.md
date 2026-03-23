@@ -163,7 +163,7 @@ Add trust tier display and ENSIP-25 linkage status to existing `ensemble agent i
 | Name | Role | Address |
 |------|------|---------|
 | emilemarcelagustin.eth | Project ENS name (manager key in .env) | Manager: `0xeb0ABB367540f90B57b3d5719fd2b9c740a15022` |
-| estmcmxci.eth | Personal ENS name (DO NOT uner: `0x703a...89B` |
+| emilemarcelagustin.eth (personal) | Personal ENS name (DO NOT use for operations) | Owner: personal wallet |
 
 ## Dependencies
 

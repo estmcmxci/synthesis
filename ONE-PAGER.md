@@ -37,7 +37,7 @@ Given any ENS name, an agent can resolve the full trust stack in one pass:
 ## Architecture
 
 ```
-                    estmcmxci.eth
+                    emilemarcelagustin.eth
                          |
           +--------------+--------------+
           |              |              |
@@ -46,7 +46,7 @@ Given any ENS name, an agent can resolve the full trust stack in one pass:
         |              |           agent-version-lineage: subname
         v              v                |
    ERC-8004       SKILL.md on          v
-   Token #24994   skills.*.eth    v1.estmcmxci.eth
+   Token #24994   skills.*.eth    v1.emilemarcelagustin.eth
    (Base)              |           agent-manifest: ipfs://...
                        v                |
                   Capabilities          v
@@ -66,11 +66,11 @@ Given any ENS name, an agent can resolve the full trust stack in one pass:
 ## Team
 
 - **Agent**: Claude Code (Token #24994, ERC-8004 on Base)
-- **Human**: Emile Marcel Agustin (@estmcmxci / estmcmxci.eth)
+- **Human**: emilemarcelagustin.eth
 
 ## Deliverables
 
 1. `@synthesis/resolver` — TypeScript library for full-stack trust resolution
 2. Live demo — resolve any ENS name through all 4 layers, visualize the trust profile
-3. Reference implementation — estmcmxci.eth configured end-to-end as a working example
+3. Reference implementation — emilemarcelagustin.eth configured end-to-end as a working example
 4. Specification document — how the layers compose, with test vectors

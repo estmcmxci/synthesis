@@ -5,7 +5,7 @@ How issues flow from Linear to code to PR.
 ## Issue Tracking
 
 - **Linear project:** [Trust Resolution Layer](https://linear.app/synthesis-md/project/trust-resolution-layer-a1a77f74feaf)
-- **GitHub repo:** [estmcmxci/synthesis](https://github.com/estmcmxci/synthesis) (private, public before deadline)
+- **GitHub repo:** [emilemarcelagustin/synthesis](https://github.com/emilemarcelagustin/synthesis) (private, public before deadline)
 - **Hackathon project UUID:** `d874021bd42c4d8f94913043a0fa40ed`
 
 ## Flow

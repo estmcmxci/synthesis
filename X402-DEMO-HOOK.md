@@ -148,7 +148,7 @@ app.use('/api/*', async (req, res, next) => {
       token: 'USDC',
       chain: 'eip155:8453',
       facilitator: 'https://x402.org/facilitator',
-      'x-trust-provider': 'estmcmxci.eth',
+      'x-trust-provider': 'emilemarcelagustin.eth',
     });
   }
 
@@ -186,7 +186,7 @@ async function callPaidEndpoint(url: string, providerName: string) {
 
 ## What We Demo at Synthesis
 
-1. **estmcmxci.eth as live provider** — all 4 TRL layers configured, x402 endpoint serving trust resolution as a paid API
+1. **emilemarcelagustin.eth as live provider** — all 4 TRL layers configured, x402 endpoint serving trust resolution as a paid API
 2. **Live payment** — Agent A queries, gets 402, resolves trust profile, pays USDC on Base, gets result
 3. **Trust gate in action** — show what happens when the provider is unverified (payment refused)
 4. **Visualization** — the demo UI shows the trust profile resolving in real-time alongside the payment flow

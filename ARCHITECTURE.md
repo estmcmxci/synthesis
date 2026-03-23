@@ -77,7 +77,7 @@ The product stack layers (this document) describe how the system composes end-to
 **What**: IPFS pinning + ENS content hash + OmniPin orchestration + Safe multisig
 **Spec**: `SKILL-decentralized-web-stack.md`
 
-Provides censorship-resistant, content-addressed hosting for all static artifacts. The ENS content hash is set on-chain, meaning anyone can independently verify that the content served at `estmcmxci.eth.limo` matches what's recorded.
+Provides censorship-resistant, content-addressed hosting for all static artifacts. The ENS content hash is set on-chain, meaning anyone can independently verify that the content served at `emilemarcelagustin.eth.limo` matches what's recorded.
 
 **Hosts:**
 - "The Abstracted Self" essay (permanent, uncensorable)
@@ -117,7 +117,7 @@ This is a binary — yes or no. The TRL (Layer 1) takes this signal and extends 
 **Spec**: `PRD.md`, `ONE-PAGER.md`
 
 ```
-resolve("estmcmxci.eth") → TrustProfile {
+resolve("emilemarcelagustin.eth") → TrustProfile {
   personhood: World ID — proof-of-personhood (AgentKit / AgentBook)
   identity:   ENSIP-25 — on-chain registry (ERC-8004)
   context:    ENSIP-26 — agent-context record
@@ -149,7 +149,7 @@ Borrowed patterns from AgentKit:
 
 **Depends on Personhood Layer**: The personhood check is the first resolution step — without it, trust starts at Layer 1 (identity) rather than Layer 0.
 
-**Depends on Hosting Layer**: The AIP manifest lives on IPFS (hosting layer stores it). The SKILL.md is served from `estmcmxci.eth.limo` (hosting layer provides the gateway). The content hash itself is a verifiable artifact that the TRL can check.
+**Depends on Hosting Layer**: The AIP manifest lives on IPFS (hosting layer stores it). The SKILL.md is served from `emilemarcelagustin.eth.limo` (hosting layer provides the gateway). The content hash itself is a verifiable artifact that the TRL can check.
 
 ---
 
@@ -178,20 +178,20 @@ The site serves two audiences simultaneously:
 The site has two homes — one for each audience's needs:
 
 ```
-estmcmxci.eth
+emilemarcelagustin.eth
      │
      ├── contenthash (IPFS) ──→ Static mirror (dweb)
-     │     estmcmxci.eth.limo
+     │     emilemarcelagustin.eth.limo
      │     Essay, SKILL.md, trust snapshot, token metadata
      │     Permanent, verifiable, censorship-resistant
      │
      └── agent-context ──→ Dynamic site (Vercel)
-           estmcmxci.vercel.app (or custom domain)
+           emilemarcelagustin.vercel.app (or custom domain)
            TRL resolver, token profile, wallet connect
            Server-side ENS reads, live contract data
 ```
 
-**Static content** (essay, about, SKILL.md) is built with `next export` and pinned to IPFS via the Layer 0 pipeline. Accessible at `estmcmxci.eth.limo`.
+**Static content** (essay, about, SKILL.md) is built with `next export` and pinned to IPFS via the Layer 0 pipeline. Accessible at `emilemarcelagustin.eth.limo`.
 
 **Dynamic features** (resolver, token profile, live trust profiles) run on Vercel with server functions for RPC calls and contract reads.
 
@@ -201,17 +201,17 @@ Both serve the same brand, same content where they overlap. If Vercel goes down,
 
 ## Layer 3: Product — Identity Token
 
-**What**: A single canonical identity token for estmcmxci.eth, deployed as a one-time ceremony that proves the entire stack is operational
+**What**: A single canonical identity token for emilemarcelagustin.eth, deployed as a one-time ceremony that proves the entire stack is operational
 **Spec**: `IDENTITY-TOKEN.md`
 
-$ESTMCMXCI is not a platform — it's the financialization of a single verified identity. One token, deployed once, gated by the full stack. The token *cannot exist* unless everything underneath it is live and passing: personhood, identity, context, manifest, skill, site, hosting. It is cryptographic proof that the stack works.
+$IDENTITY_TOKEN is not a platform — it's the financialization of a single verified identity. One token, deployed once, gated by the full stack. The token *cannot exist* unless everything underneath it is live and passing: personhood, identity, context, manifest, skill, site, hosting. It is cryptographic proof that the stack works.
 
 ### The Launch Ceremony
 
 A single CLI command that can only succeed when every layer is operational:
 
 ```
-ensemble launch estmcmxci.eth
+ensemble launch emilemarcelagustin.eth
 
   Step 1: Resolve TRL
   │  Run full trust resolution against all 5 layers
@@ -220,7 +220,7 @@ ensemble launch estmcmxci.eth
   │
   Step 2: Verify site is live
   │  Check ENS contenthash is set (IPFS CID exists)
-  │  Fetch estmcmxci.eth.limo → confirm 200 OK
+  │  Fetch emilemarcelagustin.eth.limo → confirm 200 OK
   │  REQUIRE: contenthash set AND gateway responding
   │
   Step 3: Verify caller owns the name
@@ -237,10 +237,10 @@ ensemble launch estmcmxci.eth
   │
   Step 5: Record the token on-chain
   │  Set ENS text record: identity-token = <contract address>
-  │  Now resolvable by anyone querying estmcmxci.eth
+  │  Now resolvable by anyone querying emilemarcelagustin.eth
   │
   Done.
-  $ESTMCMXCI is live. The stack is proven.
+  $IDENTITY_TOKEN is live. The stack is proven.
 ```
 
 The ceremony is irreversible and non-repeatable for a given ENS name. The token's existence is proof that at the moment of deployment, every layer — from biometric personhood to domain-verified skills — was verified and the site was serving.
@@ -351,7 +351,7 @@ Bankr Wallet + Safe Smart Account (USDC on Base)
 
 ## The Reference Implementation
 
-estmcmxci.eth is the first entity to pass through this entire stack:
+emilemarcelagustin.eth is the first entity to pass through this entire stack:
 
 | Layer | Artifact | Status |
 |-------|----------|--------|
@@ -359,7 +359,7 @@ estmcmxci.eth is the first entity to pass through this entire stack:
 | 0.5 — Hosting | IPFS + ENS content hash | To deploy |
 | 1 — Substrate | ERC-8004 #24994 on Base, ENSIP-25 verified | Live |
 | 2 — Application | Personal site (Next.js) | To build |
-| 3 — Product | $ESTMCMXCI identity token (via Bankr → Clanker) | To launch |
+| 3 — Product | $IDENTITY_TOKEN identity token (via Bankr → Clanker) | To launch |
 | 4 — Wallet | Safe smart account, passkey-owned, session keys | To build |
 | 5 — Spending | Agent card + x402 (TRL-verified, tri-rail) | To research |
 
@@ -373,7 +373,7 @@ estmcmxci.eth is the first entity to pass through this entire stack:
 Phase 0: Personhood
   └── World ID / AgentKit integration
        └── AgentBook on-chain lookup (Base + World Chain)
-       └── Register estmcmxci.eth agent wallet in AgentBook via AgentKit CLI
+       └── Register emilemarcelagustin.eth agent wallet in AgentBook via AgentKit CLI
        └── Integrate into TRL as Layer 0 of resolution flow
 
 Phase 1: Substrate
@@ -392,13 +392,13 @@ Phase 3: Hosting
        └── Static export of content pages
        └── IPFS pin via OmniPin
        └── ENS content hash update
-       └── Verify at estmcmxci.eth.limo
+       └── Verify at emilemarcelagustin.eth.limo
 
 Phase 4: Product — Launch Ceremony
-  └── `ensemble launch estmcmxci.eth`
+  └── `ensemble launch emilemarcelagustin.eth`
        └── Implement launch command (TRL full + site live + owner check)
        └── Pin token image + metadata to IPFS (Layer 0)
-       └── Deploy $ESTMCMXCI via Bankr → Clanker on Base
+       └── Deploy $IDENTITY_TOKEN via Bankr → Clanker on Base
        └── Write token contract address to ENS text record
        └── Token profile page on site (/token)
 

@@ -25,7 +25,7 @@ It composes ENSIP-25, ENSIP-26, and Agent Identity Profile (AIP) into a single r
 
 ### 3.1 Trust Resolution (the library)
 
-**Input**: An ENS name (e.g., `estmcmxci.eth`)
+**Input**: An ENS name (e.g., `emilemarcelagustin.eth`)
 
 **Output**: A `TrustProfile` object containing:
 
@@ -105,11 +105,11 @@ A web-based (or CLI) tool that:
 
 ### 3.4 Reference Records
 
-Set up `estmcmxci.eth` with all records as a live, working example:
+Set up `emilemarcelagustin.eth` with all records as a live, working example:
 - ENSIP-25: `agent-registration[<base-registry>][24994]` = `"1"`
 - ENSIP-26: `agent-context` = structured context with SKILL.md pointer
 - AIP: `agent-latest` = `v1`, `agent-version-lineage` = `subname`
-- AIP: `v1.estmcmxci.eth` → `agent-manifest` = `ipfs://...`
+- AIP: `v1.emilemarcelagustin.eth` → `agent-manifest` = `ipfs://...`
 - SKILL.md hosted on ENS subdomain
 
 ## 4. Non-Requirements (Explicitly Out of Scope)
@@ -131,7 +131,7 @@ Set up `estmcmxci.eth` with all records as a live, working example:
 
 ## 6. Success Criteria
 
-1. `resolve("estmcmxci.eth")` returns a complete `TrustProfile` with `trustScore: "full"`
+1. `resolve("emilemarcelagustin.eth")` returns a complete `TrustProfile` with `trustScore: "full"`
 2. Resolution completes in under 5 seconds on mainnet
 3. Demo clearly visualizes each trust layer
 4. At least one other agent/name can be resolved (even if it returns partial trust)

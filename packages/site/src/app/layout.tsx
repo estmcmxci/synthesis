@@ -3,18 +3,18 @@ import { Sidebar } from "@/components/sidebar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "émile marcel agustín — Trust Resolution Layer",
+  title: "emilemarcelagustin.eth — Trust Resolution Layer",
   description:
     "Deliberate legibility as a stack. Verifiable agent identity, capability discovery, and version integrity anchored to ENS.",
   openGraph: {
-    title: "émile marcel agustín",
+    title: "emilemarcelagustin.eth",
     description: "Trust Resolution Layer — deliberate legibility anchored to ENS.",
     siteName: "emilemarcelagustin.eth",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "émile marcel agustín",
+    title: "emilemarcelagustin.eth",
     description: "Trust Resolution Layer — deliberate legibility anchored to ENS.",
   },
 };
@@ -22,11 +22,9 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "Person",
-  name: "Émile Marcel Agustín",
-  alternateName: "estmcmxci",
+  name: "emilemarcelagustin.eth",
   url: "https://emilemarcelagustin.eth.limo",
   sameAs: [
-    "https://twitter.com/estmcmxci",
     "https://app.ens.domains/emilemarcelagustin.eth",
   ],
   identifier: {

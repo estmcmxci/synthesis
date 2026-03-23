@@ -9,7 +9,7 @@ Anyone can deploy a token with a name. But a token launched *through* the TRL ca
 ## Architecture
 
 ```
-ENS Name (e.g. estmcmxci.eth)
+ENS Name (e.g. emilemarcelagustin.eth)
      |
      v
 Trust Resolution Layer (substrate)
@@ -33,7 +33,7 @@ Clanker Token Deployment (Base)
      |
      v
 Identity Token (live on Base)
-     $ESTMCMXCI — the first profile coin
+     $IDENTITY_TOKEN — the first profile coin
 ```
 
 ## How It Works for Users
@@ -60,12 +60,12 @@ import { base } from 'viem/chains';
 const clanker = new Clanker({ wallet, publicClient });
 
 const tokenAddress = await clanker.deployToken({
-  name: "estmcmxci",
-  symbol: "ESTMCMXCI",
+  name: "emilemarcelagustin",
+  symbol: "TBD",
   image: "ipfs://...",           // profile image
   metadata: {
-    description: "Identity token for estmcmxci.eth — TRL verified",
-    website: "https://estmcmxci.eth.limo",
+    description: "Identity token for emilemarcelagustin.eth — TRL verified",
+    website: "https://emilemarcelagustin.eth.limo",
     // social links, audit URLs
   },
   context: {
@@ -119,8 +119,8 @@ This is Phase 2 — built after the TRL substrate and personal site are live.
 
 1. **Integrate `clanker-sdk`** into the Next.js site
 2. **Build the deployment flow** — wallet connect, TRL verification gate, token config UI
-3. **Deploy $ESTMCMXCI** as the first identity token (dogfooding)
-4. **Token profile page** — `/token/estmcmxci.eth` shows live price, trust profile, trading link
+3. **Deploy $IDENTITY_TOKEN** as the first identity token (dogfooding)
+4. **Token profile page** — `/token/emilemarcelagustin.eth` shows live price, trust profile, trading link
 5. **Open the platform** — let any TRL-verified ENS name launch their own identity token
 6. **Fee claiming UI** — dashboard for creators to claim accumulated WETH + token rewards
 

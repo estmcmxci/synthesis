@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "The Abstracted Self — émile marcel agustín",
+  title: "The Abstracted Self — emilemarcelagustin.eth",
   description:
     "Five sketches tracing selfhood within mediated reality. The loss of interiority, ersatz intimacy, ontological insecurity, anemoia, and identity recursion.",
 };

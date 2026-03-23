@@ -15,7 +15,7 @@ Per-domain quality grades and known debt. Update this as the project evolves.
 | Resolver library (@synthesis/resolver) | D | Not yet built — types defined in PRD.md |
 | Site (Next.js) | D | Not yet built — spec in SITE.md |
 | Dweb hosting (IPFS + ENS contenthash) | D | Not yet built — spec in SKILL-decentralized-web-stack.md |
-| Identity token ($ESTMCMXCI) | D | Not yet deployed — spec in IDENTITY-TOKEN.md |
+| Identity token ($IDENTITY_TOKEN) | D | Not yet deployed — spec in IDENTITY-TOKEN.md |
 | Agent wallet (Safe + passkeys) | D | Not yet built — spec in AGENT-WALLET.md |
 | Spending layer (Agent card + x402) | D | Research phase — spec in AGENT-CARD.md |
 

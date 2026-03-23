@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "$ESTMCMXCI — Identity Token",
+  title: "$IDENTITY_TOKEN — Identity Token",
   description:
     "A profile coin backed by verified identity. Deployed through the Trust Resolution Layer as proof the entire stack is operational.",
 };
@@ -13,7 +13,7 @@ export default function TokenPage() {
       {/* Header */}
       <header className="mb-8 animate-fade-up">
         <h1 className="text-2xl font-semibold tracking-tight text-[var(--color-ink)]">
-          $ESTMCMXCI
+          $IDENTITY_TOKEN
         </h1>
         <p className="mt-2 text-sm text-[var(--color-ink-muted)]">
           Identity token — the financialization of a verified self
@@ -44,7 +44,7 @@ export default function TokenPage() {
             Token Details
           </h2>
           <div className="border border-[var(--color-border)] rounded-md bg-white divide-y divide-[var(--color-border)]">
-            <DetailRow label="Name" value="ESTMCMXCI" />
+            <DetailRow label="Name" value="IDENTITY_TOKEN" />
             <DetailRow label="Standard" value="ERC-20" />
             <DetailRow label="Chain" value="Base" />
             <DetailRow label="Supply" value="100,000,000,000 (fixed)" />
@@ -75,7 +75,7 @@ export default function TokenPage() {
           </h2>
           <div className="text-sm text-[var(--color-ink)] space-y-3 leading-relaxed">
             <p>
-              $ESTMCMXCI is not a platform — it&rsquo;s the financialization of a
+              $IDENTITY_TOKEN is not a platform — it&rsquo;s the financialization of a
               single verified identity. The token <em>cannot exist</em> unless
               everything underneath it is live and passing: personhood, identity,
               context, manifest, skill, site, hosting.

@@ -11,7 +11,7 @@ Add proof-of-personhood as Resolution Layer 0 in the TRL. This answers the most 
 | SYN-12 | Implement `layers/personhood.ts` — AgentBook lookup | — |
 | SYN-13 | Add `ensemble personhood check <address>` CLI command | SYN-12 |
 | SYN-47 | Add `ensemble personhood register` CLI command | — |
-| SYN-14 | Register estmcmxci.eth in AgentBook via AgentKit | SYN-47 |
+| SYN-14 | Register emilemarcelagustin.eth in AgentBook via AgentKit | SYN-47 |
 | SYN-5 | Epic — close when all above are done | SYN-12, 13, 14, 47 |
 
 ## Implementation Order
@@ -107,15 +107,14 @@ This handles the full World ID QR code flow (displays QR → user scans with Wor
 
 **Alternative**: If we want tighter integration, we can use `@worldcoin/idkit-core` directly to manage the bridge/QR flow. But shelling out to the CLI is simpler and the registration is a one-time human task.
 
-### SYN-14: Register estmcmxci.eth in AgentBook
+### SYN-14: Register emilemarcelagustin.eth in AgentBook
 
 **What**: Actually run the registration for our agent wallet.
 
 **Address to register**: `0xeb0ABB367540f90B57b3d5719fd2b9c740a15022` (manager of emilemarcelagustin.eth)
 
-> **Security note**: We use the emilemarcelagustin.eth manager address, NOT the estmcmxci.eth
-> owner (`0x703a...89B`) which holds personal assets. Private key for `0xeb0A...022` is stored
-> in `.env` as `ENS_PRIVATE_KEY`.
+> **Security note**: We use the emilemarcelagustin.eth manager address, not the personal wallet.
+> Private key for `0xeb0A...022` is stored in `.env` as `ENS_PRIVATE_KEY`.
 
 **This is a human task** — requires biometric World ID verification via the Orb or World App. Can be done after SYN-47 is built by running:
 ```bash
@@ -182,7 +181,7 @@ And the trust tier computation needs updating — `personhood` is the floor but 
 
 2. **Shell out to `@worldcoin/agentkit-cli` for registration** — The registration flow requires an interactive QR code (World App scan → ZK proof → relay submission). Rather than reimplementing the bridge/polling logic, we delegate to the official CLI via `execFileSync` with `stdio: "inherit"`. Registration is a one-time human task, not a recurring operation.
 
-3. **Signing address separation** — We register `0xeb0ABB...022` (manager of emilemarcelagustin.eth), NOT `0x703a...89B` (estmcmxci.eth owner with personal assets). Private key stored in `.env`, never committed.
+3. **Signing address separation** — We register `0xeb0ABB...022` (manager of emilemarcelagustin.eth), not the personal wallet. Private key stored in `.env`, never committed.
 
 4. **Personhood as optional signal** — Personhood enriches the TrustProfile but doesn't gate the trust tier progression. An agent without World ID can still reach `full` trust via ENSIP-25 + ENSIP-26 + AIP + DVS. Personhood adds a stronger floor signal: "a provably unique human chose to be legible."
 

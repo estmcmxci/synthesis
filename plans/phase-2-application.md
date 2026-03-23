@@ -46,7 +46,7 @@ packages/site/
 │   │   ├── trust/
 │   │   │   └── page.tsx     # /trust — live trust profile (SYN-30)
 │   │   ├── token/
-│   │   │   └── page.tsx     # /token — $ESTMCMXCI profile (SYN-31)
+│   │   │   └── page.tsx     # /token — $IDENTITY_TOKEN profile (SYN-31)
 │   │   └── skill.md/
 │   │       └── route.ts     # /skill.md — machine-readable (SYN-32)
 │   ├── components/
@@ -70,7 +70,6 @@ For now (Phase 2), we build everything on Vercel. Phase 3 handles the IPFS stati
 The front door. Establishes identity and states the thesis.
 
 **Content:**
-- Name: Émile Marcel Agustín
 - ENS: `emilemarcelagustin.eth`
 - The thesis of deliberate legibility — one paragraph
 - Links to `/essay`, `/trust`, `/resolve`
@@ -111,7 +110,7 @@ Live trust profile for `emilemarcelagustin.eth` — the reference implementation
 
 ### SYN-31: Token profile (`/token`)
 
-$ESTMCMXCI token profile page. Displays:
+$IDENTITY_TOKEN token profile page. Displays:
 - Live price + chart (Uniswap pool data)
 - Trust profile of the deployer (TRL-resolved)
 - Trading link (Uniswap on Base)
@@ -137,7 +136,7 @@ Make the site consumable by machines:
 
 ## ENS Name
 
-The site represents `emilemarcelagustin.eth` (not estmcmxci.eth). All references, metadata, and resolution examples use this name.
+The site represents `emilemarcelagustin.eth`. All references, metadata, and resolution examples use this name.
 
 ## Risks
 
@@ -159,7 +158,7 @@ The personal site at `emilemarcelagustin.eth` is complete — 6 routes serving b
 | `/essay` | "The Abstracted Self" — full text, 5 sketches | Static | #19 |
 | `/resolve` | Interactive TRL demo — resolve any ENS name | Static + Server Action | #20 |
 | `/trust` | Live trust profile for emilemarcelagustin.eth | Dynamic (force-dynamic) | #21 |
-| `/token` | $ESTMCMXCI profile — UI shell, pending launch | Static | #22 |
+| `/token` | $IDENTITY_TOKEN profile — UI shell, pending launch | Static | #22 |
 | `/skill.md` | Machine-readable capability file | Static (force-static) | #23 |
 
 ### Design decisions
@@ -185,7 +184,7 @@ The personal site at `emilemarcelagustin.eth` is complete — 6 routes serving b
 /essay ............. The Abstracted Self (5 sketches + conclusion)
 /resolve ........... Interactive resolver (form + Server Action)
 /trust ............. Live trust profile (Server Component, force-dynamic)
-/token ............. $ESTMCMXCI profile (UI shell, pending Phase 4)
+/token ............. $IDENTITY_TOKEN profile (UI shell, pending Phase 4)
 /skill.md .......... SKILL.md (text/markdown, force-static)
 ```
 
