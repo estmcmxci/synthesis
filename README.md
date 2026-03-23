@@ -48,15 +48,20 @@ Each tier requires all previous layers to pass:
 # Install dependencies
 pnpm install
 
+# Build the CLI
+pnpm --filter @synthesis/cli build
+
 # Resolve an ENS name through the full trust stack
-pnpm --filter @synthesis/cli exec ensemble trust <name>.eth
+ensemble trust <name>.eth
 
 # Set ENS text records
-pnpm --filter @synthesis/cli exec ensemble edit txt <name>.eth <key> <value>
+ensemble edit txt <name>.eth <key> <value>
 
 # Create and sign an AIP manifest
-pnpm --filter @synthesis/cli exec ensemble manifest create --sign --pin
+ensemble manifest create --sign --pin
 ```
+
+During development, use `pnpm --filter @synthesis/cli dev -- <command>` to run without building.
 
 ### As a library
 
