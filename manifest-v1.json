@@ -1,0 +1,21 @@
+{
+  "schema": "ens.agent/1",
+  "ensName": "emilemarcelagustin.eth",
+  "version": "v1",
+  "prev": null,
+  "payload": {
+    "endpoints": [
+      "https://ensemble-iota.vercel.app"
+    ],
+    "capabilities": [
+      "trust-resolution",
+      "ens-identity"
+    ],
+    "skill": "https://ensemble-iota.vercel.app/skill.md"
+  },
+  "manifestHash": "sha256:324a3753792188232df579d1b33a924c90a98da687051bdcff4ce707458e339a",
+  "signature": {
+    "scheme": "evm-owner-signature",
+    "value": "0x55b295e6aa1a189deaee5753fee6536359958078590951fa718404920bc7eff8389039c7e1b83221e3d12336abedc10bc0c07e6521afeaeb48df4048011eab121c"
+  }
+}
