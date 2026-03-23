@@ -645,8 +645,8 @@ export function encodeIpfsContenthash(cid: string): `0x${string}` {
 	// bytes[1] = codec (0x70 for dag-pb, 0x55 for raw)
 	// bytes[2..] = multihash
 
-	// Contenthash = 0xe301 + codec + multihash
-	const contenthash = [0xe3, 0x01, ...bytes.slice(1)];
+	// Contenthash = 0xe301 + full CID bytes (version + codec + multihash)
+	const contenthash = [0xe3, 0x01, ...bytes];
 	return ("0x" + contenthash.map(b => b.toString(16).padStart(2, "0")).join("")) as `0x${string}`;
 }
 
