@@ -147,8 +147,9 @@ async function verifyManifestSignature(
   if (!ownerAddress) return false;
 
   // Build canonical bytes (sorted keys, no whitespace)
-  const { signature, ...manifestWithoutSig } = manifest;
-  const canonicalBytes = JSON.stringify(manifestWithoutSig, Object.keys(manifestWithoutSig).sort());
+  // Strip signature AND manifestHash — the create command signs the body without these
+  const { signature, manifestHash, ...manifestBody } = manifest;
+  const canonicalBytes = JSON.stringify(manifestBody, Object.keys(manifestBody).sort());
 
   try {
     // Verify EIP-191 signature
