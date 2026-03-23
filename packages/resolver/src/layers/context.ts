@@ -79,6 +79,13 @@ function extractSkillUrl(
     return raw;
   }
 
+  // Search for a SKILL.md URL embedded in the text
+  const urlMatch = raw.match(/https?:\/\/[^\s]+skill[^\s]*/i);
+  if (urlMatch) {
+    // Clean trailing punctuation
+    return urlMatch[0].replace(/[.,;)]+$/, "");
+  }
+
   return null;
 }
 
