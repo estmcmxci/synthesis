@@ -435,6 +435,75 @@ edit.command("primary", {
 	},
 });
 
+edit.command("contenthash", {
+	description: "Set the contenthash for an ENS name (IPFS CID)",
+	args: z.object({
+		name: z.string().describe("Target ENS name"),
+		cid: z.string().describe("IPFS CID (bafybei... or bafkrei...)"),
+	}),
+	options: z.object({
+		network: z.string().optional().describe("Network to use (mainnet, sepolia)"),
+		ledger: z.boolean().optional().describe("Use Ledger hardware wallet for signing"),
+		accountIndex: z.string().optional().describe("Ledger account index (default: 0)"),
+	}),
+	alias: { network: "n", ledger: "l" },
+	examples: [
+		{
+			args: { name: "emilemarcelagustin.eth", cid: "bafybeiegl3sucwezsefjpx6bcvoco3vyg6z2nuyi6tncmm2gt3qx5iznsa" },
+			description: "Set IPFS contenthash",
+		},
+	],
+	async run({ args, options }) {
+		const { normalize } = await import("viem/ens");
+		const { getPublicClient } = await import("./utils/viem");
+		const { encodeIpfsContenthash, setContenthashOnChain, RESOLVER_ABI } = await import("./utils/contracts");
+		const { namehash } = await import("viem");
+		const colors = (await import("yoctocolors")).default;
+
+		const name = normalize(args.name);
+		const client = getPublicClient(options.network || "mainnet");
+
+		// Get resolver
+		const node = namehash(name);
+		const resolverAddress = await client.readContract({
+			address: "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e",
+			abi: [{ name: "resolver", type: "function", stateMutability: "view", inputs: [{ name: "node", type: "bytes32" }], outputs: [{ type: "address" }] }],
+			functionName: "resolver",
+			args: [node],
+		});
+
+		if (!resolverAddress || resolverAddress === "0x0000000000000000000000000000000000000000") {
+			console.error(colors.red(`No resolver found for ${args.name}`));
+			return { error: "no resolver" };
+		}
+
+		// Strip ipfs:// prefix if present
+		const cid = args.cid.replace("ipfs://", "");
+
+		console.log(colors.blue("Setting contenthash..."));
+		console.log(`  ${colors.blue("Name:")} ${name}`);
+		console.log(`  ${colors.blue("CID:")} ${cid}`);
+		console.log(`  ${colors.blue("Resolver:")} ${resolverAddress}`);
+
+		const contenthash = encodeIpfsContenthash(cid);
+		console.log(`  ${colors.blue("Encoded:")} ${contenthash.slice(0, 20)}...`);
+
+		const txHash = await setContenthashOnChain(
+			name,
+			contenthash,
+			resolverAddress as `0x${string}`,
+			options.network || "mainnet",
+			options.ledger,
+			options.accountIndex ? parseInt(options.accountIndex, 10) : 0,
+		);
+
+		console.log(colors.green(`✓ Contenthash set`));
+		console.log(`  ${colors.blue("Explorer:")} https://etherscan.io/tx/${txHash}`);
+
+		return { name: args.name, cid };
+	},
+});
+
 // Mount edit subcommand group
 cli.command(edit);
 

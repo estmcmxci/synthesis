@@ -9,7 +9,7 @@
  */
 
 import type { Address } from "viem";
-import { encodeFunctionData, keccak256, encodePacked } from "viem";
+import { encodeFunctionData, keccak256, encodePacked, namehash } from "viem";
 import { normalize } from "viem/ens";
 import { getNetworkConfig, type AgentChainConfig } from "../config/deployments";
 import { getPublicClient, getWalletClient, createChainPublicClient } from "./viem";
@@ -129,6 +129,16 @@ export const RESOLVER_ABI = [
 		stateMutability: "view",
 		inputs: [{ name: "node", type: "bytes32" }],
 		outputs: [{ type: "bytes" }],
+	},
+	{
+		name: "setContenthash",
+		type: "function",
+		stateMutability: "nonpayable",
+		inputs: [
+			{ name: "node", type: "bytes32" },
+			{ name: "hash", type: "bytes" },
+		],
+		outputs: [],
 	},
 ] as const;
 
@@ -586,6 +596,98 @@ export async function getContenthash(
 	} catch {
 		return null;
 	}
+}
+
+/**
+ * Encode an IPFS CID (base32/base58) into ENS contenthash bytes.
+ *
+ * Contenthash format for IPFS: 0xe3010170 + CID multihash
+ * - 0xe3 = IPFS namespace (varint)
+ * - 0x01 = CIDv1
+ * - 0x70 = dag-pb codec (or 0x55 for raw)
+ * - followed by the multihash
+ */
+export function encodeIpfsContenthash(cid: string): `0x${string}` {
+	// Base32 CIDv1 (bafybei... or bafkrei...)
+	// We need to decode the CID and extract the raw bytes
+	// CIDv1 base32lower: decode base32 -> version(1) + codec + multihash
+
+	// Simple approach: use the base32 alphabet to decode
+	const alphabet = "abcdefghijklmnopqrstuvwxyz234567";
+	const stripped = cid.replace("bafybei", "").replace("bafkrei", "");
+
+	// Determine codec from CID prefix
+	// bafybei = CIDv1 + dag-pb (0x70)
+	// bafkrei = CIDv1 + raw (0x55)
+	const isDagPb = cid.startsWith("bafybei");
+
+	// Full base32 decode of the CID (without the multibase prefix 'b')
+	const base32Str = cid.slice(1); // remove 'b' multibase prefix
+	const bits: number[] = [];
+	for (const char of base32Str) {
+		const val = alphabet.indexOf(char);
+		if (val === -1) continue;
+		for (let i = 4; i >= 0; i--) {
+			bits.push((val >> i) & 1);
+		}
+	}
+
+	const bytes: number[] = [];
+	for (let i = 0; i + 8 <= bits.length; i += 8) {
+		let byte = 0;
+		for (let j = 0; j < 8; j++) {
+			byte = (byte << 1) | bits[i + j];
+		}
+		bytes.push(byte);
+	}
+
+	// bytes[0] = CID version (0x01)
+	// bytes[1] = codec (0x70 for dag-pb, 0x55 for raw)
+	// bytes[2..] = multihash
+
+	// Contenthash = 0xe301 + codec + multihash
+	const contenthash = [0xe3, 0x01, ...bytes.slice(1)];
+	return ("0x" + contenthash.map(b => b.toString(16).padStart(2, "0")).join("")) as `0x${string}`;
+}
+
+/**
+ * Set contenthash on an ENS name's resolver
+ */
+export async function setContenthashOnChain(
+	name: string,
+	contenthash: `0x${string}`,
+	resolverAddress: Address,
+	network?: string,
+	useLedger?: boolean,
+	accountIndex?: number,
+): Promise<`0x${string}`> {
+	const wallet = await getWalletClient(network, useLedger, accountIndex);
+	const client = getPublicClient(network);
+
+	if (!wallet || !wallet.account) {
+		throw new Error(
+			"Wallet not configured. Set ENS_PRIVATE_KEY environment variable or use --ledger flag.",
+		);
+	}
+
+	const chain = network === "mainnet" || network === undefined ? mainnet : sepolia;
+	const node = namehash(normalize(name));
+
+	const txHash = await wallet.writeContract({
+		chain,
+		account: wallet.account,
+		address: resolverAddress,
+		abi: RESOLVER_ABI,
+		functionName: "setContenthash",
+		args: [node, contenthash],
+	});
+
+	await client.waitForTransactionReceipt({
+		hash: txHash,
+		confirmations: 2,
+	});
+
+	return txHash;
 }
 
 /**
