@@ -6,8 +6,8 @@
  */
 
 const PUBLIC_GATEWAYS = [
-  "https://gateway.pinata.cloud/ipfs/",
   "https://w3s.link/ipfs/",
+  "https://gateway.pinata.cloud/ipfs/",
   "https://cloudflare-ipfs.com/ipfs/",
   "https://ipfs.io/ipfs/",
 ];
