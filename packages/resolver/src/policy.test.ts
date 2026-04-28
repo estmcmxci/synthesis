@@ -61,6 +61,18 @@ test("denies when caller is self with different casing (ENSIP-15 normalization)"
   assert.equal(decision.reason, "self-resolution not permitted by policy");
 });
 
+test("denies when allowSelf is false but callerEns is missing (fail-closed)", () => {
+  const profile = makeProfile({ ensName: "alice.eth" });
+  // No third argument — callerEns is undefined. The self-check cannot
+  // run, so the gate must deny rather than silently bypass.
+  const decision = gate(profile, strictPolicy);
+  assert.equal(decision.allow, false);
+  assert.equal(
+    decision.reason,
+    "self-resolution check requires callerEns when allowSelf is false",
+  );
+});
+
 test("denies when trust tier is below required minTier", () => {
   const profile = makeProfile({ trustScore: "registered" });
   const policy: TrustPolicy = {

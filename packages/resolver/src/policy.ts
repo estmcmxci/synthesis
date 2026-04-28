@@ -36,10 +36,25 @@ export function gate(
   callerEns?: string,
 ): GateDecision {
   // 1. Deny: self disallowed.
-  // Compare normalized names — ENS is case-insensitive per ENSIP-15, so a
-  // raw === would let "Alice.eth" bypass an allowSelf:false gate against a
-  // profile resolved from "alice.eth".
-  if (!policy.allowSelf && callerEns) {
+  // When allowSelf is false, callerEns is REQUIRED — without it, the gate
+  // can't determine self vs not-self and a missing flag would silently
+  // bypass the protection. Treat missing-callerEns as a deny so the safety
+  // control fails closed.
+  //
+  // When callerEns is present, compare normalized names — ENS is
+  // case-insensitive per ENSIP-15, so a raw === would let "Alice.eth"
+  // bypass an allowSelf:false gate against a profile resolved from
+  // "alice.eth".
+  if (!policy.allowSelf) {
+    if (!callerEns) {
+      return {
+        allow: false,
+        reason:
+          "self-resolution check requires callerEns when allowSelf is false",
+        profile,
+        policy,
+      };
+    }
     const caller = normalizeName(callerEns);
     const target = normalizeName(profile.ensName);
     if (caller === target) {
