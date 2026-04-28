@@ -83,3 +83,12 @@ export {
   type TrustPolicy,
   type GateDecision,
 } from "./policy.js";
+
+export {
+  createLocalSigner,
+  createNameraSigner,
+  type Batch,
+  type Signer,
+  type CreateLocalSignerOptions,
+  type CreateNameraSignerOptions,
+} from "./wallets/index.js";
