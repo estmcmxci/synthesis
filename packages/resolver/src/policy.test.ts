@@ -54,6 +54,13 @@ test("denies when caller is self and allowSelf is false", () => {
   assert.equal(decision.reason, "self-resolution not permitted by policy");
 });
 
+test("denies when caller is self with different casing (ENSIP-15 normalization)", () => {
+  const profile = makeProfile({ ensName: "alice.eth" });
+  const decision = gate(profile, strictPolicy, "Alice.eth");
+  assert.equal(decision.allow, false);
+  assert.equal(decision.reason, "self-resolution not permitted by policy");
+});
+
 test("denies when trust tier is below required minTier", () => {
   const profile = makeProfile({ trustScore: "registered" });
   const policy: TrustPolicy = {

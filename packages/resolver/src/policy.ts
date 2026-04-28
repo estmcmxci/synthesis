@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TrustTier, TrustProfileSchema, type TrustProfile } from "./schema.js";
+import { normalizeName } from "./utils/ens.js";
 
 export const TrustPolicySchema = z.object({
   minTier: TrustTier.default("verified"),
@@ -34,14 +35,21 @@ export function gate(
   policy: TrustPolicy,
   callerEns?: string,
 ): GateDecision {
-  // 1. Deny: self disallowed
-  if (!policy.allowSelf && callerEns === profile.ensName) {
-    return {
-      allow: false,
-      reason: "self-resolution not permitted by policy",
-      profile,
-      policy,
-    };
+  // 1. Deny: self disallowed.
+  // Compare normalized names — ENS is case-insensitive per ENSIP-15, so a
+  // raw === would let "Alice.eth" bypass an allowSelf:false gate against a
+  // profile resolved from "alice.eth".
+  if (!policy.allowSelf && callerEns) {
+    const caller = normalizeName(callerEns);
+    const target = normalizeName(profile.ensName);
+    if (caller === target) {
+      return {
+        allow: false,
+        reason: "self-resolution not permitted by policy",
+        profile,
+        policy,
+      };
+    }
   }
 
   // 2. Deny: tier below minimum
