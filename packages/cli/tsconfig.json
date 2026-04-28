@@ -22,8 +22,8 @@
     "declaration": true,
     "declarationMap": true,
     "outDir": "./dist",
-    "rootDir": "./cli"
+    "rootDir": "./"
   },
-  "include": ["cli/**/*"],
+  "include": ["./**/*.ts"],
   "exclude": ["node_modules", "dist"]
 }

@@ -837,7 +837,7 @@ manifest.command("create", {
 	examples: [
 		{
 			args: { name: "emilemarcelagustin.eth" },
-			options: { version: "v1", output: "manifest-v1.json" },
+			options: { ver: "v1", output: "manifest-v1.json" },
 			description: "Create genesis manifest",
 		},
 	],
