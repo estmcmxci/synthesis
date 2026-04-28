@@ -18,7 +18,8 @@
     "build": "tsup src/index.ts --format esm --dts --outDir dist",
     "dev": "tsx src/index.ts",
     "lint": "npx @biomejs/biome lint --write .",
-    "format": "npx @biomejs/biome format --write ."
+    "format": "npx @biomejs/biome format --write .",
+    "test": "tsx --test src/*.test.ts"
   },
   "dependencies": {
     "@namera-ai/sdk": "^0.1.0",
