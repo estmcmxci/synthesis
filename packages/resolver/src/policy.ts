@@ -35,6 +35,14 @@ export function gate(
   policy: TrustPolicy,
   callerEns?: string,
 ): GateDecision {
+  // Normalize through the schema so missing fields fall back to documented
+  // defaults at runtime (the spec contract). TypeScript callers already get
+  // required-field enforcement, but JSON / JS / MCP-tool callers can pass
+  // partial inputs — without this, undefined `minTier` would silently skip
+  // the tier check, etc. Echo the ORIGINAL `policy` in the decision so audit
+  // logs see what the caller actually passed.
+  const p = TrustPolicySchema.parse(policy);
+
   // 1. Deny: self disallowed.
   // When allowSelf is false, callerEns is REQUIRED — without it, the gate
   // can't determine self vs not-self and a missing flag would silently
@@ -45,7 +53,7 @@ export function gate(
   // case-insensitive per ENSIP-15, so a raw === would let "Alice.eth"
   // bypass an allowSelf:false gate against a profile resolved from
   // "alice.eth".
-  if (!policy.allowSelf) {
+  if (!p.allowSelf) {
     if (!callerEns) {
       return {
         allow: false,
@@ -68,10 +76,10 @@ export function gate(
   }
 
   // 2. Deny: tier below minimum
-  if (tierRank(profile.trustScore) < tierRank(policy.minTier)) {
+  if (tierRank(profile.trustScore) < tierRank(p.minTier)) {
     return {
       allow: false,
-      reason: `tier ${profile.trustScore} below required ${policy.minTier}`,
+      reason: `tier ${profile.trustScore} below required ${p.minTier}`,
       profile,
       policy,
     };
@@ -79,7 +87,7 @@ export function gate(
 
   // 3. Deny: signature invalid (only when manifest was found)
   if (
-    policy.requireSig &&
+    p.requireSig &&
     profile.manifest.found &&
     !profile.manifest.signatureValid
   ) {
@@ -92,7 +100,7 @@ export function gate(
   }
 
   // 4. Deny: lineage broken
-  if (policy.requireLineage && !profile.manifest.lineageIntact) {
+  if (p.requireLineage && !profile.manifest.lineageIntact) {
     return {
       allow: false,
       reason: `manifest lineage broken at v${profile.manifest.lineageDepth}`,
