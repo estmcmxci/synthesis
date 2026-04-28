@@ -20,6 +20,13 @@ export interface Batch {
    * back to sequential sends.
    */
   atomic: boolean;
+  /**
+   * Optional ZeroDev custom nonce key. Smart-account signers (Namera) use this
+   * to run independent batches in parallel nonce lanes via `executeTransaction`.
+   * EOA signers (local) ignore this field — Ethereum's per-address nonce is
+   * strictly sequential, so EOAs have no equivalent concept.
+   */
+  nonceKey?: string;
   calls: Array<{ to: `0x${string}`; data: `0x${string}`; value: bigint }>;
 }
 

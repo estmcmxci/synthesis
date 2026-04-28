@@ -31,6 +31,19 @@ export function createLocalSigner(opts: CreateLocalSignerOptions): Signer {
   return {
     address: account.address,
     async execute(batches: Batch[]): Promise<`0x${string}`> {
+      // Reject wrong-chain batches before any send. The Signer interface
+      // treats batch.chainId as a routing key; a local signer is locked to
+      // a single chain, so anything else is a programming error and must
+      // surface loudly rather than silently broadcast on the wrong network.
+      for (const batch of batches) {
+        if (batch.chainId !== opts.chain.id) {
+          throw new Error(
+            `[createLocalSigner] batch.chainId ${batch.chainId} does not match signer chain ${opts.chain.id} (${opts.chain.name}). ` +
+              "Local signers are locked to a single chain at construction; reuse Batch builders only when chainId matches.",
+          );
+        }
+      }
+
       // EOA limitation: no atomic batching. Warn loudly when callers expect
       // it so they don't silently rely on a guarantee they're not getting.
       const wantsAtomic = batches.some(
