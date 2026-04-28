@@ -31,6 +31,7 @@ import {
 	personhoodCheck,
 	personhoodRegister,
 	trust as trustCmd,
+	gate as gateCmd,
 	manifestCreate,
 	manifestPin,
 	manifestVerify,
@@ -110,6 +111,63 @@ cli.command("trust", {
 			agentIds: options.agentId,
 		});
 		return { resolved: args.name };
+	},
+});
+
+cli.command("gate", {
+	description:
+		"Resolve an ENS name and apply a trust policy. Exit code: 0 on allow, 1 on deny. For machine-readable output, append --format json.",
+	args: z.object({
+		name: z.string().describe("ENS name to evaluate (e.g., emilemarcelagustin.eth)"),
+	}),
+	options: z.object({
+		minTier: z
+			.enum(["none", "registered", "discoverable", "verified", "full"])
+			.optional()
+			.describe("Minimum trust tier required (default: verified)"),
+		noLineage: z
+			.boolean()
+			.optional()
+			.describe("Skip the AIP manifest lineage check (default: required)"),
+		noSig: z
+			.boolean()
+			.optional()
+			.describe("Skip the manifest signature check (default: required)"),
+		denySelf: z
+			.boolean()
+			.optional()
+			.describe("Deny when caller resolves their own ENS name (default: allow self)"),
+		callerEns: z
+			.string()
+			.optional()
+			.describe("Caller's ENS name — required when --deny-self is set"),
+	}),
+	alias: { minTier: "t" },
+	examples: [
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			description: "Gate with default policy (minTier=verified, all checks on)",
+		},
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			options: { minTier: "discoverable" },
+			description: "Lower the bar to discoverable",
+		},
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			description: "Append --format json for machine-readable GateDecision JSON",
+		},
+	],
+	async run({ args, options }) {
+		const decision = await gateCmd({
+			name: args.name,
+			minTier: options.minTier,
+			requireLineage: options.noLineage ? false : undefined,
+			requireSig: options.noSig ? false : undefined,
+			allowSelf: options.denySelf ? false : undefined,
+			callerEns: options.callerEns,
+		});
+		return decision;
 	},
 });
 
