@@ -18,6 +18,7 @@ export { transfer } from "./transfer";
 export { registerAgent, linkAgent, agentInfo } from "./agent";
 export { personhoodCheck, personhoodRegister } from "./personhood";
 export { trust } from "./trust";
+export { gate } from "./gate";
 export { manifestCreate, manifestPin, manifestVerify } from "./manifest";
 export { contextGet, contextSet } from "./context";
 export { skillFetch } from "./skill";
