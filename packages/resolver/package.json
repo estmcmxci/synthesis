@@ -1,6 +1,6 @@
 {
   "name": "@synthesis/resolver",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Trust Resolution Layer — ENS identity resolution, trust scoring, and verification",
   "type": "module",
   "main": "./dist/index.js",
