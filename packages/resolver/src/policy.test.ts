@@ -124,6 +124,18 @@ test("denies when manifest lineage is broken", () => {
   assert.match(decision.reason, /manifest lineage broken at v2/);
 });
 
+test("applies schema defaults when policy fields are omitted (runtime safety)", () => {
+  const profile = makeProfile({ trustScore: "registered" });
+  // Partial policy — would happen with JSON inputs, JS callers, or MCP
+  // params where TypeScript can't enforce required fields. The spec
+  // promises defaults; gate() must apply them.
+  const partialPolicy = {} as unknown as TrustPolicy;
+  const decision = gate(profile, partialPolicy);
+  // Default minTier is "verified", so registered should be denied.
+  assert.equal(decision.allow, false);
+  assert.match(decision.reason, /tier registered below required verified/);
+});
+
 test("allows when all gates pass", () => {
   const profile = makeProfile({
     ensName: "alice.eth",
