@@ -60,6 +60,9 @@ importers:
 
   packages/resolver:
     dependencies:
+      '@namera-ai/sdk':
+        specifier: ^0.1.0
+        version: 0.1.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
       '@worldcoin/agentkit':
         specifier: ^0.1.5
         version: 0.1.5(ethers@6.16.0)(typescript@5.9.3)
@@ -639,6 +642,11 @@ packages:
   '@multiformats/multiaddr@13.0.1':
     resolution: {integrity: sha512-XToN915cnfr6Lr9EdGWakGJbPT0ghpg/850HvdC+zFX8XvpLZElwa8synCiwa8TuvKNnny6m8j8NVBNCxhIO3g==}
 
+  '@namera-ai/sdk@0.1.0':
+    resolution: {integrity: sha512-nrBMai1fMy/ZnG9z1hDaT3d/lBLIl2znhnTnjIQNegjRoKedjO1NbBA14furWs/GUOlQ9N7SQZHvcnm5iMukhQ==}
+    peerDependencies:
+      viem: ^2.47.2
+
   '@next/env@15.5.14':
     resolution: {integrity: sha512-aXeirLYuASxEgi4X4WhfXsShCFxWDfNn/8ZeC5YXAS2BB4A8FJi1kwwGL6nvMVboE7fZCzmJPNdMvVHc8JpaiA==}
 
@@ -1058,9 +1066,24 @@ packages:
 
   '@worldcoin/agentkit@0.1.5':
     resolution: {integrity: sha512-Kde4xxSsjEYTUws+eSx594nlFMsj76fGGjcDw3UQ8MohWgb7kiFgeL/fH4EbmV9OdaMoKOnJDgcZzZGpH9BE7g==}
+    deprecated: 0.0.1
 
   '@x402/core@2.7.0':
     resolution: {integrity: sha512-2l1QaRO50qtWpnTJed45HtGRAUp3z2Mep1caNCuaNBzeiE8OfWfuXmip+ujgp3vWZHxRqag221aRSnKbA6gDaQ==}
+
+  '@zerodev/multi-chain-ecdsa-validator@5.4.5':
+    resolution: {integrity: sha512-cmQcsl5WbjnyQuhAS76BUqsHGtUOfWqdkMlm60s75kmRKzF5PiKzRpWIZyeISVmJV0F4P5u1keo1xYONEFiw1w==}
+    peerDependencies:
+      '@zerodev/sdk': ^5.4.0
+      '@zerodev/webauthn-key': ^5.4.0
+      viem: ^2.28.0
+
+  '@zerodev/passkey-validator@5.6.0':
+    resolution: {integrity: sha512-ItnPs/6m3pT8tWaLqt31AFFQ4tAc5O01gtXP0Y7RW7xfuqUbgwYOghyeKMEkw6LfYykUWLhapL4B5c0CBYkgvg==}
+    peerDependencies:
+      '@zerodev/sdk': ^5.4.0
+      '@zerodev/webauthn-key': ^5.4.2
+      viem: ^2.28.0
 
   '@zerodev/permissions@5.6.3':
     resolution: {integrity: sha512-MwW3Eo3rB5ViOKdY6NUoyvmQTV/bCbOZbmQMTYQqAT7B8rdI9jo44nNONMOHIhDkfF4VFhQ9+M50cCZLA/6zcg==}
@@ -1077,6 +1100,13 @@ packages:
   '@zerodev/webauthn-key@5.5.0':
     resolution: {integrity: sha512-AbD2d/qrsX7AWxJMEfwxnLbp1TjiUjc1V4ne3Q40UJxKe+lW64Td+y8OD0qSFMqgN6rQxJZ0aOAXmat8H6xluA==}
     peerDependencies:
+      viem: ^2.28.0
+
+  '@zerodev/weighted-validator@5.5.1':
+    resolution: {integrity: sha512-fQhlI3OZNm0ONFeMJKqV72G/oXUX6D/7wmofgSBSEVvzummvjwVj3iSj1cz/sht5AfaZVteWnX8eIQLutJwTaQ==}
+    peerDependencies:
+      '@zerodev/sdk': ^5.4.0
+      '@zerodev/webauthn-key': ^5.4.2
       viem: ^2.28.0
 
   abitype@1.2.3:
@@ -2902,6 +2932,16 @@ snapshots:
       uint8-varint: 2.0.4
       uint8arrays: 5.1.0
 
+  '@namera-ai/sdk@0.1.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))':
+    dependencies:
+      '@zerodev/multi-chain-ecdsa-validator': 5.4.5(@zerodev/sdk@5.5.8(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(@zerodev/webauthn-key@5.5.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
+      '@zerodev/passkey-validator': 5.6.0(@zerodev/sdk@5.5.8(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(@zerodev/webauthn-key@5.5.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
+      '@zerodev/permissions': 5.6.3(@zerodev/sdk@5.5.8(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(@zerodev/webauthn-key@5.5.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
+      '@zerodev/sdk': 5.5.8(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
+      '@zerodev/webauthn-key': 5.5.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
+      '@zerodev/weighted-validator': 5.5.1(@zerodev/sdk@5.5.8(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(@zerodev/webauthn-key@5.5.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
+      viem: 2.47.5(typescript@5.9.3)(zod@3.25.76)
+
   '@next/env@15.5.14': {}
 
   '@next/mdx@15.5.14(@mdx-js/react@3.1.1(@types/react@19.2.14)(react@19.2.4))':
@@ -3243,6 +3283,23 @@ snapshots:
     dependencies:
       zod: 3.25.76
 
+  '@zerodev/multi-chain-ecdsa-validator@5.4.5(@zerodev/sdk@5.5.8(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(@zerodev/webauthn-key@5.5.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))':
+    dependencies:
+      '@simplewebauthn/browser': 9.0.1
+      '@simplewebauthn/typescript-types': 8.3.4
+      '@zerodev/sdk': 5.5.8(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
+      '@zerodev/webauthn-key': 5.5.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
+      merkletreejs: 0.3.11
+      viem: 2.47.5(typescript@5.9.3)(zod@3.25.76)
+
+  '@zerodev/passkey-validator@5.6.0(@zerodev/sdk@5.5.8(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(@zerodev/webauthn-key@5.5.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))':
+    dependencies:
+      '@noble/curves': 1.9.1
+      '@simplewebauthn/browser': 8.3.7
+      '@zerodev/sdk': 5.5.8(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
+      '@zerodev/webauthn-key': 5.5.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
+      viem: 2.47.5(typescript@5.9.3)(zod@3.25.76)
+
   '@zerodev/permissions@5.6.3(@zerodev/sdk@5.5.8(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(@zerodev/webauthn-key@5.5.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))':
     dependencies:
       '@simplewebauthn/browser': 9.0.1
@@ -3261,6 +3318,14 @@ snapshots:
       '@noble/curves': 1.9.1
       '@simplewebauthn/browser': 8.3.7
       '@simplewebauthn/types': 12.0.0
+      viem: 2.47.5(typescript@5.9.3)(zod@3.25.76)
+
+  '@zerodev/weighted-validator@5.5.1(@zerodev/sdk@5.5.8(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(@zerodev/webauthn-key@5.5.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76)))(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))':
+    dependencies:
+      '@noble/curves': 1.9.1
+      '@simplewebauthn/browser': 8.3.7
+      '@zerodev/sdk': 5.5.8(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
+      '@zerodev/webauthn-key': 5.5.0(viem@2.47.5(typescript@5.9.3)(zod@3.25.76))
       viem: 2.47.5(typescript@5.9.3)(zod@3.25.76)
 
   abitype@1.2.3(typescript@5.9.3)(zod@3.25.76):
