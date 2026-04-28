@@ -75,3 +75,11 @@ export {
   parseEnsip25Key,
   KNOWN_REGISTRIES,
 } from "./utils/erc7930.js";
+
+export {
+  gate,
+  TrustPolicySchema,
+  GateDecisionSchema,
+  type TrustPolicy,
+  type GateDecision,
+} from "./policy.js";
