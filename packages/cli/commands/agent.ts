@@ -27,7 +27,7 @@ import {
 	getNetworkConfig,
 } from "../config/deployments";
 import { createChainPublicClient, createChainWalletClient } from "../utils/viem";
-import { buildEnsip25Key } from "../utils/erc7930";
+import { buildEnsip25Key } from "@synthesis/resolver";
 import { resolvePersonhood } from "@synthesis/resolver";
 
 /**

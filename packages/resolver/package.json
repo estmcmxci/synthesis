@@ -19,7 +19,7 @@
     "dev": "tsx src/index.ts",
     "lint": "npx @biomejs/biome lint --write .",
     "format": "npx @biomejs/biome format --write .",
-    "test": "tsx --test src/*.test.ts src/wallets/*.test.ts"
+    "test": "tsx --test src/*.test.ts src/utils/*.test.ts src/wallets/*.test.ts"
   },
   "dependencies": {
     "@namera-ai/sdk": "^0.1.0",
