@@ -8,6 +8,8 @@
 import {
   createPublicClient,
   http,
+  namehash,
+  zeroAddress,
   type Address,
   type PublicClient,
 } from "viem";
@@ -15,6 +17,35 @@ import { normalize } from "viem/ens";
 import { mainnet } from "viem/chains";
 
 const DEFAULT_RPC = "https://eth.drpc.org";
+
+// Mainnet ENS Registry (deterministic across networks that use the canonical deployment)
+const ENS_REGISTRY_ADDRESS: Address =
+  "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
+
+// Mainnet NameWrapper. Sepolia uses 0x0635513f179D50A207757E05759CbD106d7dFcE8;
+// the resolver is mainnet-only today, so we only check the mainnet address here.
+const NAME_WRAPPER_ADDRESS: Address =
+  "0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401";
+
+const REGISTRY_ABI = [
+  {
+    type: "function",
+    name: "owner",
+    stateMutability: "view",
+    inputs: [{ name: "node", type: "bytes32" }],
+    outputs: [{ name: "", type: "address" }],
+  },
+] as const;
+
+const NAME_WRAPPER_ABI = [
+  {
+    type: "function",
+    name: "ownerOf",
+    stateMutability: "view",
+    inputs: [{ name: "id", type: "uint256" }],
+    outputs: [{ name: "", type: "address" }],
+  },
+] as const;
 
 /**
  * Create a public client configured for ENS resolution on mainnet.
@@ -112,20 +143,44 @@ export async function resolveAddress(
 }
 
 /**
- * Get the owner (registrant) address of an ENS name.
+ * Get the registry owner of an ENS name — the address that controls the
+ * name and is authorized to sign records on its behalf.
  *
- * Uses the ENS registry's owner() function.
- * Returns null if the name doesn't exist.
+ * Reads `Registry.owner(node)`. If the registry owner is the NameWrapper,
+ * unwraps via `NameWrapper.ownerOf(uint256(node))` to return the true owner.
+ *
+ * This is the right address for verifying record signatures (AIP manifests,
+ * ENSIP-25 links, etc.) — distinct from `addr()`, which is the payment
+ * address and may be a smart contract that does not control the name.
+ *
+ * Returns null if the name is unowned or the lookup fails.
  */
 export async function getOwner(
   client: PublicClient,
   name: string,
 ): Promise<Address | null> {
   try {
-    // viem doesn't have a direct getEnsOwner, but we can resolve
-    // the name to check it exists, then use the registry
-    const address = await resolveAddress(client, name);
-    return address;
+    const node = namehash(normalizeName(name));
+    const registryOwner = (await client.readContract({
+      address: ENS_REGISTRY_ADDRESS,
+      abi: REGISTRY_ABI,
+      functionName: "owner",
+      args: [node],
+    })) as Address;
+
+    if (registryOwner === zeroAddress) return null;
+
+    if (registryOwner.toLowerCase() === NAME_WRAPPER_ADDRESS.toLowerCase()) {
+      const wrappedOwner = (await client.readContract({
+        address: NAME_WRAPPER_ADDRESS,
+        abi: NAME_WRAPPER_ABI,
+        functionName: "ownerOf",
+        args: [BigInt(node)],
+      })) as Address;
+      return wrappedOwner === zeroAddress ? null : wrappedOwner;
+    }
+
+    return registryOwner;
   } catch {
     return null;
   }
