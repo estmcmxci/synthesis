@@ -113,6 +113,8 @@ export async function registerAgent(options: AgentRegisterOptions) {
 		}
 
 		const txHash = await wallet.writeContract({
+			account: wallet.account ?? null,
+			chain: wallet.chain,
 			address: agentChain.identityRegistry8004,
 			abi: IDENTITY_REGISTRY_8004_ABI,
 			functionName: "register",

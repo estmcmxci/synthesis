@@ -130,7 +130,7 @@ export async function manifestPin(options: ManifestPinOptions) {
   try {
     const { PinataSDK } = await import("pinata");
     const pinata = new PinataSDK({ pinataJwt, pinataGateway: "" });
-    const result = await pinata.upload.public.json(JSON.parse(content));
+    const result = await pinata.upload.json(JSON.parse(content));
     stopSpinner();
 
     console.log(colors.green("✓") + " Pinned to IPFS");
