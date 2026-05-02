@@ -13,7 +13,7 @@ import {
   type Address,
   type PublicClient,
 } from "viem";
-import { normalize } from "viem/ens";
+import { labelhash, normalize } from "viem/ens";
 import { mainnet } from "viem/chains";
 
 const DEFAULT_RPC = "https://eth.drpc.org";
@@ -26,6 +26,11 @@ const ENS_REGISTRY_ADDRESS: Address =
 // the resolver is mainnet-only today, so we only check the mainnet address here.
 const NAME_WRAPPER_ADDRESS: Address =
   "0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401";
+
+// Mainnet BaseRegistrar (.eth). Owns all unwrapped .eth 2LDs at the registry
+// level; the actual controller is BaseRegistrar.ownerOf(uint256(labelhash)).
+const BASE_REGISTRAR_ADDRESS: Address =
+  "0x57f1887a8BF19b14fC0dF6Fd9B2acc9Af147eA85";
 
 const REGISTRY_ABI = [
   {
@@ -43,6 +48,16 @@ const NAME_WRAPPER_ABI = [
     name: "ownerOf",
     stateMutability: "view",
     inputs: [{ name: "id", type: "uint256" }],
+    outputs: [{ name: "", type: "address" }],
+  },
+] as const;
+
+const BASE_REGISTRAR_ABI = [
+  {
+    type: "function",
+    name: "ownerOf",
+    stateMutability: "view",
+    inputs: [{ name: "tokenId", type: "uint256" }],
     outputs: [{ name: "", type: "address" }],
   },
 ] as const;
@@ -146,8 +161,14 @@ export async function resolveAddress(
  * Get the registry owner of an ENS name — the address that controls the
  * name and is authorized to sign records on its behalf.
  *
- * Reads `Registry.owner(node)`. If the registry owner is the NameWrapper,
- * unwraps via `NameWrapper.ownerOf(uint256(node))` to return the true owner.
+ * Resolution chain:
+ * 1. `Registry.owner(node)` → registry owner.
+ * 2. If owner is the NameWrapper, unwrap via `NameWrapper.ownerOf(uint256(node))`.
+ * 3. If owner is the BaseRegistrar (unwrapped `.eth` 2LDs), look up the true
+ *    controller via `BaseRegistrar.ownerOf(uint256(labelhash(label)))` —
+ *    the registry owner for these names is the registrar contract itself,
+ *    not the user.
+ * 4. Otherwise, return the registry owner.
  *
  * This is the right address for verifying record signatures (AIP manifests,
  * ENSIP-25 links, etc.) — distinct from `addr()`, which is the payment
@@ -160,7 +181,8 @@ export async function getOwner(
   name: string,
 ): Promise<Address | null> {
   try {
-    const node = namehash(normalizeName(name));
+    const normalized = normalizeName(name);
+    const node = namehash(normalized);
     const registryOwner = (await client.readContract({
       address: ENS_REGISTRY_ADDRESS,
       abi: REGISTRY_ABI,
@@ -178,6 +200,23 @@ export async function getOwner(
         args: [BigInt(node)],
       })) as Address;
       return wrappedOwner === zeroAddress ? null : wrappedOwner;
+    }
+
+    if (registryOwner.toLowerCase() === BASE_REGISTRAR_ADDRESS.toLowerCase()) {
+      // BaseRegistrar issues NFT-style ownership of `.eth` 2LDs; the tokenId
+      // is the labelhash of the leftmost label (e.g. "alice" for "alice.eth").
+      // Only valid for two-label `.eth` names — guard against mis-routing
+      // deeper subnames whose registry owner happens to be the registrar.
+      const labels = normalized.split(".");
+      if (labels.length !== 2 || labels[1] !== "eth") return null;
+
+      const baseOwner = (await client.readContract({
+        address: BASE_REGISTRAR_ADDRESS,
+        abi: BASE_REGISTRAR_ABI,
+        functionName: "ownerOf",
+        args: [BigInt(labelhash(labels[0]))],
+      })) as Address;
+      return baseOwner === zeroAddress ? null : baseOwner;
     }
 
     return registryOwner;
