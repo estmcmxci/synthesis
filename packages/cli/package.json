@@ -19,9 +19,10 @@
     "format": "npx @biomejs/biome format --write ."
   },
   "devDependencies": {
-    "typescript": "^5.8.3",
+    "@types/node": "^25.6.0",
     "tsup": "^8.5.1",
-    "tsx": "^4.20.6"
+    "tsx": "^4.20.6",
+    "typescript": "^5.8.3"
   },
   "dependencies": {
     "@ledgerhq/hw-app-eth": "^7.2.0",
