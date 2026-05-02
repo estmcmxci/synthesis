@@ -11,7 +11,7 @@ import {
 	stopSpinner,
 	normalizeEnsName,
 	getResolver,
-	getTextRecord,
+	getTextRecordStrict,
 	setTextRecordOnChain,
 	getSignerAddress,
 	getSignerAddressAsync,
@@ -273,16 +273,51 @@ export async function linkAgent(options: AgentLinkOptions) {
 		// ENS exposes no text-record enumeration, so the resolver reads the
 		// `agent-ids` JSON array to know which IDs to look up under the
 		// ENSIP-25 prefix. Without this write the link is invisible.
-		const existingRaw = await getTextRecord(resolver, node, "agent-ids", ensNetwork);
+		//
+		// Use the strict reader: a transient RPC failure here is NOT the same
+		// as "no record exists". Treating it as empty would let us silently
+		// overwrite a populated `agent-ids` array with `[<this id>]` and
+		// erase previously linked agents. Surface the error and bail.
+		let existingRaw: string | null;
+		try {
+			existingRaw = await getTextRecordStrict(resolver, node, "agent-ids", ensNetwork);
+		} catch (readErr) {
+			console.error(
+				colors.red(
+					`✗ Failed to read existing agent-ids before update: ${(readErr as Error).message}`,
+				),
+			);
+			console.error(
+				colors.yellow(
+					`  ENSIP-25 record is set, but agent-ids was NOT updated. Re-run \`ensemble agent link ${fullName} ${agentId}\` once the RPC recovers.`,
+				),
+			);
+			return;
+		}
+
 		let ids: string[] = [];
 		if (existingRaw) {
 			try {
 				const parsed = JSON.parse(existingRaw);
 				if (Array.isArray(parsed)) {
 					ids = parsed.filter((x): x is string => typeof x === "string");
+				} else {
+					// Non-array JSON is unexpected and would be silently overwritten;
+					// refuse instead and let the user inspect/fix.
+					console.error(
+						colors.red(
+							`✗ agent-ids on ${fullName} is not a JSON array (got: ${existingRaw.slice(0, 80)}). Refusing to overwrite. Inspect with \`ensemble edit txt ${fullName} agent-ids\`.`,
+						),
+					);
+					return;
 				}
 			} catch {
-				// Malformed value — overwrite with a clean array containing just the new id.
+				console.error(
+					colors.red(
+						`✗ agent-ids on ${fullName} is not valid JSON (got: ${existingRaw.slice(0, 80)}). Refusing to overwrite. Inspect with \`ensemble edit txt ${fullName} agent-ids\`.`,
+					),
+				);
+				return;
 			}
 		}
 
