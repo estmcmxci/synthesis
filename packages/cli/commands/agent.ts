@@ -11,6 +11,7 @@ import {
 	stopSpinner,
 	normalizeEnsName,
 	getResolver,
+	getTextRecordStrict,
 	setTextRecordOnChain,
 	getSignerAddress,
 	getSignerAddressAsync,
@@ -222,6 +223,9 @@ export async function linkAgent(options: AgentLinkOptions) {
 		console.log(colors.blue(`Linking agent #${agentId} to ${fullName}...`));
 		console.log(colors.dim(`  ENSIP-25 key: ${ensip25Key}`));
 		console.log(colors.dim(`  Value: "1" (linked)`));
+		console.log(
+			colors.dim(`  This requires up to two transactions (ENSIP-25 record + agent-ids index).`),
+		);
 
 		// Get resolver
 		const resolver = await getResolver(node, ensNetwork);
@@ -257,12 +261,104 @@ export async function linkAgent(options: AgentLinkOptions) {
 		});
 		stopSpinner();
 
-		if (receipt.status === "success") {
-			console.log(colors.green(`✓ Agent #${agentId} linked to ${fullName}`));
-			console.log(`  ${colors.blue("Explorer:")} ${config.explorerUrl}/tx/${txHash}`);
-		} else {
+		if (receipt.status !== "success") {
 			console.error(colors.red("✗ Transaction reverted"));
+			return;
 		}
+
+		console.log(colors.green(`✓ ENSIP-25 record set`));
+		console.log(`  ${colors.blue("Explorer:")} ${config.explorerUrl}/tx/${txHash}`);
+
+		// Update the agent-ids index so the resolver can discover this agent.
+		// ENS exposes no text-record enumeration, so the resolver reads the
+		// `agent-ids` JSON array to know which IDs to look up under the
+		// ENSIP-25 prefix. Without this write the link is invisible.
+		//
+		// Use the strict reader: a transient RPC failure here is NOT the same
+		// as "no record exists". Treating it as empty would let us silently
+		// overwrite a populated `agent-ids` array with `[<this id>]` and
+		// erase previously linked agents. Surface the error and bail.
+		let existingRaw: string | null;
+		try {
+			existingRaw = await getTextRecordStrict(resolver, node, "agent-ids", ensNetwork);
+		} catch (readErr) {
+			console.error(
+				colors.red(
+					`✗ Failed to read existing agent-ids before update: ${(readErr as Error).message}`,
+				),
+			);
+			console.error(
+				colors.yellow(
+					`  ENSIP-25 record is set, but agent-ids was NOT updated. Re-run \`ensemble agent link ${fullName} ${agentId}\` once the RPC recovers.`,
+				),
+			);
+			return;
+		}
+
+		let ids: string[] = [];
+		if (existingRaw) {
+			try {
+				const parsed = JSON.parse(existingRaw);
+				if (Array.isArray(parsed)) {
+					ids = parsed.filter((x): x is string => typeof x === "string");
+				} else {
+					// Non-array JSON is unexpected and would be silently overwritten;
+					// refuse instead and let the user inspect/fix.
+					console.error(
+						colors.red(
+							`✗ agent-ids on ${fullName} is not a JSON array (got: ${existingRaw.slice(0, 80)}). Refusing to overwrite. Inspect with \`ensemble edit txt ${fullName} agent-ids\`.`,
+						),
+					);
+					return;
+				}
+			} catch {
+				console.error(
+					colors.red(
+						`✗ agent-ids on ${fullName} is not valid JSON (got: ${existingRaw.slice(0, 80)}). Refusing to overwrite. Inspect with \`ensemble edit txt ${fullName} agent-ids\`.`,
+					),
+				);
+				return;
+			}
+		}
+
+		if (ids.includes(agentId)) {
+			console.log(colors.dim(`  agent-ids already contains ${agentId}, skipping index update`));
+		} else {
+			if (useLedger) {
+				console.log(
+					colors.yellow("Please confirm the second transaction on your Ledger device..."),
+				);
+			}
+			startSpinner("Updating agent-ids index...");
+			const idsTxHash = await setTextRecordOnChain(
+				node,
+				"agent-ids",
+				JSON.stringify([...ids, agentId]),
+				resolver,
+				ensNetwork,
+				useLedger,
+				accountIndex,
+			);
+			const idsReceipt = await client.waitForTransactionReceipt({
+				hash: idsTxHash,
+				confirmations: 2,
+			});
+			stopSpinner();
+
+			if (idsReceipt.status !== "success") {
+				console.error(
+					colors.red(
+						`✗ agent-ids update reverted. ENSIP-25 record is set but the resolver won't discover it until you re-run \`ensemble agent link\` or write agent-ids manually.`,
+					),
+				);
+				return;
+			}
+
+			console.log(colors.green(`✓ agent-ids updated`));
+			console.log(`  ${colors.blue("Explorer:")} ${config.explorerUrl}/tx/${idsTxHash}`);
+		}
+
+		console.log(colors.green(`✓ Agent #${agentId} linked to ${fullName}`));
 	} catch (error) {
 		stopSpinner();
 		const e = error as Error;
