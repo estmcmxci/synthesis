@@ -69,19 +69,19 @@ export async function contextSet(options: ContextSetOptions) {
     }
   }
 
-  const normalized = normalizeEnsName(name);
-  const resolverAddress = await getResolver(normalized, network);
+  const { node, fullName } = normalizeEnsName(name, network);
+  const resolverAddress = await getResolver(node, network);
 
   if (!resolverAddress) {
-    console.error(colors.red(`No resolver found for ${name}`));
+    console.error(colors.red(`No resolver found for ${fullName}`));
     return;
   }
 
-  startSpinner(`Setting agent-context on ${colors.cyan(name)}...`);
+  startSpinner(`Setting agent-context on ${colors.cyan(fullName)}...`);
 
   try {
     await setTextRecordOnChain(
-      normalized,
+      node,
       "agent-context",
       value,
       resolverAddress,
@@ -91,7 +91,7 @@ export async function contextSet(options: ContextSetOptions) {
     );
     stopSpinner();
 
-    console.log(colors.green("✓") + ` agent-context set on ${colors.cyan(name)}`);
+    console.log(colors.green("✓") + ` agent-context set on ${colors.cyan(fullName)}`);
     console.log(`  ${colors.blue("Value:")} ${value.length > 80 ? value.slice(0, 80) + "..." : value}`);
   } catch (error) {
     stopSpinner();
