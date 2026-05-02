@@ -568,6 +568,28 @@ export async function getTextRecord(
 }
 
 /**
+ * Strict read of a text record. Returns null only when the resolver returns
+ * an empty string ("not set"). Any RPC / contract error is thrown so the
+ * caller can distinguish "absent" from "read failed" — important before
+ * writing back values that should preserve prior content.
+ */
+export async function getTextRecordStrict(
+	resolverAddress: Address,
+	node: `0x${string}`,
+	key: string,
+	network?: string,
+): Promise<string | null> {
+	const client = getPublicClient(network);
+	const value = await client.readContract({
+		address: resolverAddress,
+		abi: RESOLVER_ABI,
+		functionName: "text",
+		args: [node, key],
+	});
+	return value || null;
+}
+
+/**
  * Get contenthash from resolver
  */
 export async function getContenthash(
