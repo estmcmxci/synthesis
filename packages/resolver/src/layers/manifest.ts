@@ -14,7 +14,7 @@
 import { verifyMessage, type PublicClient } from "viem";
 import type { AgentManifest, ManifestResult } from "../schema.js";
 import { AgentManifestSchema } from "../schema.js";
-import { createEnsClient, getTextRecord, resolveAddress } from "../utils/ens.js";
+import { createEnsClient, getOwner, getTextRecord } from "../utils/ens.js";
 import { extractCid, fetchFromIpfs } from "../utils/ipfs.js";
 
 export interface ResolveManifestOptions {
@@ -129,6 +129,13 @@ async function fetchManifest(
  * 1. ensName matches the root name being resolved
  * 2. version matches the version identifier
  * 3. Signature is valid against the current ENS owner
+ *
+ * The verifier address is the **registry owner** (unwrapped if the name is
+ * held by the NameWrapper) — not `addr()`. `addr()` is the payment record
+ * and may be a smart contract that does not control the name; the manifest
+ * authority is whoever owns the name on the registry. For names owned by
+ * smart-contract wallets (e.g. Safe), `verifyMessage` falls through to the
+ * ERC-1271 path automatically.
  */
 async function verifyManifestSignature(
   client: PublicClient,
@@ -142,8 +149,8 @@ async function verifyManifestSignature(
   // Verify version matches
   if (manifest.version !== expectedVersion) return false;
 
-  // Get the current ENS owner address
-  const ownerAddress = await resolveAddress(client, ensName);
+  // Get the current ENS registry owner (unwrap NameWrapper if needed)
+  const ownerAddress = await getOwner(client, ensName);
   if (!ownerAddress) return false;
 
   // Build canonical bytes (sorted keys, no whitespace)
