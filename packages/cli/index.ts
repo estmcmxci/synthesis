@@ -31,6 +31,7 @@ import {
 	agentVerify,
 	agentPin,
 	agentPublish,
+	agentIssue,
 	personhoodCheck,
 	personhoodRegister,
 	trust as trustCmd,
@@ -1028,6 +1029,77 @@ agent.command("publish", {
 			accountIndex: options.accountIndex,
 			network: options.network,
 			rpc: options.rpc,
+			format: options.format,
+		});
+	},
+});
+
+agent.command("issue", {
+	description:
+		"Bootstrap an agent's wallet stack: keystore + smart-account + session-key, all alias-keyed under ~/.synthesis/. Each step skips if its file exists. Reads $SYNTHESIS_KEYSTORE_PASSWORD (required).",
+	args: z.object({
+		alias: z
+			.string()
+			.describe("Local alias for the wallet stack (e.g. bravo). Used as the filename under ~/.synthesis/<dir>/<alias>.json"),
+	}),
+	options: z.object({
+		chain: z
+			.enum(["base", "base-sepolia"])
+			.optional()
+			.describe("Target chain (default: base)"),
+		rpc: z.string().optional().describe("RPC URL override"),
+		bundler: z.string().optional().describe("ERC-4337 bundler URL override"),
+		kernelVersion: z
+			.string()
+			.optional()
+			.describe("ZeroDev kernel version (default: 0.3.3)"),
+		ttlHours: z
+			.string()
+			.regex(/^\d+$/, "must be a positive integer (hours)")
+			.optional()
+			.describe("Session-key validity window in hours (default: 168)"),
+		gasCapWei: z
+			.string()
+			.regex(/^\d+$/, "must be a positive integer (wei)")
+			.optional()
+			.describe("Per-session-key gas cap in wei (default: 1000000000000000 = 0.001 ETH)"),
+		index: z
+			.string()
+			.regex(/^\d+$/, "must be a non-negative integer")
+			.optional()
+			.describe("Smart-account derivation index (default: 0)"),
+		format: z
+			.enum(["json"])
+			.optional()
+			.describe("Emit a structured IssueResult on stdout"),
+	}),
+	alias: { format: "f" },
+	examples: [
+		{
+			args: { alias: "bravo" },
+			description: "Issue on base mainnet with defaults",
+		},
+		{
+			args: { alias: "bravo" },
+			options: { chain: "base-sepolia", ttlHours: "24" },
+			description: "Issue on base-sepolia with a short-lived session key",
+		},
+		{
+			args: { alias: "bravo" },
+			options: { format: "json" },
+			description: "Machine-readable output for piping into agent publish",
+		},
+	],
+	async run({ args, options }) {
+		return await agentIssue({
+			alias: args.alias,
+			chain: options.chain,
+			rpc: options.rpc,
+			bundler: options.bundler,
+			kernelVersion: options.kernelVersion,
+			ttlHours: options.ttlHours,
+			gasCapWei: options.gasCapWei,
+			index: options.index,
 			format: options.format,
 		});
 	},
