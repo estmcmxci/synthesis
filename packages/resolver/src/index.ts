@@ -79,6 +79,20 @@ export {
 } from "./utils/pinata.js";
 
 export {
+  publishAgentRecords,
+  validateAgentRecords,
+  buildRecordList,
+  encodeSetTextCalls,
+  encodeMulticall,
+  diffAgainstChain,
+  type AgentPublishRecords,
+  type PublishOptions,
+  type PublishPlan,
+  type RecordDiff,
+  type ValidationIssue,
+} from "./utils/agent-publish.js";
+
+export {
   createEnsClient,
   normalizeName,
   getTextRecord,

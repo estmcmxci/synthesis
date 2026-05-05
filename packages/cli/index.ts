@@ -30,6 +30,7 @@ import {
 	agentInfo,
 	agentVerify,
 	agentPin,
+	agentPublish,
 	personhoodCheck,
 	personhoodRegister,
 	trust as trustCmd,
@@ -918,6 +919,116 @@ agent.command("pin", {
 			noVerify: options.noVerify,
 			format: options.format,
 			explain: options.explain,
+		});
+	},
+});
+
+agent.command("publish", {
+	description:
+		"Broadcast the 9 ENSIP-64 records onto an ENS name. Default is read-only: prints planned calldata + a per-key diff. Pass --broadcast to send. Default is one multicall transaction; --no-multicall falls back to 9 sequential setText txs (matches the agency bash).",
+	args: z.object({
+		name: z
+			.string()
+			.describe("ENS name to publish records onto (e.g., emilemarcelagustin.eth)"),
+	}),
+	options: z.object({
+		schemaUri: z.string().optional().describe("ENSIP-64 `schema` record URI (ipfs://, https://, or cbor:)"),
+		runtimePubkey: z
+			.string()
+			.optional()
+			.describe("EVM address of the active session signer"),
+		runtimeStatus: z
+			.enum(["active", "paused", "revoked"])
+			.optional()
+			.describe("Lifecycle of runtime-pubkey (default: active)"),
+		kernelWallet: z
+			.string()
+			.optional()
+			.describe("EVM address of the smart-account kernel"),
+		agentEndpointWeb: z
+			.string()
+			.optional()
+			.describe("ENSIP-26 agent endpoint URL (https://...)"),
+		delegation: z
+			.string()
+			.optional()
+			.describe("Delegation policy doc URI"),
+		policyHash: z
+			.string()
+			.optional()
+			.describe("0x-prefixed 32-byte hex — keccak256(JCS(policy)) from `agent pin --policy ...`"),
+		policyVersion: z
+			.string()
+			.optional()
+			.describe("Human-readable policy version (e.g. v1)"),
+		class: z.string().optional().describe("ENSIP-64 class (default: Agent)"),
+		fromPinOutput: z
+			.array(z.string())
+			.optional()
+			.describe(
+				"Path to a JSON file produced by `agent pin --format json`. Repeatable. Pre-fills --schema (from schemaUri), --delegation (from delegationUri), --policy-hash (from policyHash). Explicit flags win.",
+			),
+		broadcast: z
+			.boolean()
+			.optional()
+			.describe("Send transactions. Default off — without this flag, no state is mutated."),
+		noMulticall: z
+			.boolean()
+			.optional()
+			.describe(
+				"Fall back to 9 sequential setText transactions (matches publish-records.sh). Default uses one multicall.",
+			),
+		legacyAliases: z
+			.boolean()
+			.optional()
+			.describe("Also write 7 deprecated `agent.<name>_v1` keys for one transition window"),
+		ledger: z.boolean().optional().describe("Sign via Ledger hardware wallet"),
+		accountIndex: z
+			.string()
+			.optional()
+			.describe("Ledger account index (default: 0)"),
+		network: z.string().optional().describe("Network override (mainnet, sepolia)"),
+		rpc: z.string().optional().describe("RPC URL override"),
+		format: z.enum(["json"]).optional().describe("Emit a structured PublishPlan on stdout"),
+	}),
+	alias: { broadcast: "B", format: "f" },
+	examples: [
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			description: "Plan-only (no broadcast). Prints encoded calldata + per-key diff.",
+		},
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			options: { fromPinOutput: ["./pin.json"] },
+			description: "Pre-fill schema/delegation/policy-hash from a pin output",
+		},
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			options: { broadcast: true },
+			description: "Actually send the multicall transaction",
+		},
+	],
+	async run({ args, options }) {
+		return await agentPublish({
+			name: args.name,
+			schema: options.schemaUri,
+			runtimePubkey: options.runtimePubkey,
+			runtimeStatus: options.runtimeStatus,
+			kernelWallet: options.kernelWallet,
+			agentEndpointWeb: options.agentEndpointWeb,
+			delegation: options.delegation,
+			policyHash: options.policyHash,
+			policyVersion: options.policyVersion,
+			class: options.class,
+			fromPinOutput: options.fromPinOutput,
+			broadcast: options.broadcast,
+			noMulticall: options.noMulticall,
+			legacyAliases: options.legacyAliases,
+			ledger: options.ledger,
+			accountIndex: options.accountIndex,
+			network: options.network,
+			rpc: options.rpc,
+			format: options.format,
 		});
 	},
 });
