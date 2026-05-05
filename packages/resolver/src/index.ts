@@ -99,7 +99,15 @@ export {
   getTextRecords,
   resolveAddress,
   getOwner,
+  getResolverAddress,
 } from "./utils/ens.js";
+
+export {
+  assertPublicHttpUrl,
+  isPrivateIPv4,
+  isPrivateIPv6,
+  SsrfBlockedError,
+} from "./utils/ssrf-guard.js";
 
 export {
   extractCid,

@@ -16,6 +16,7 @@ import {
   getOwner,
 } from "../utils/ens.js";
 import { fetchIpfsRaw } from "../utils/ipfs.js";
+import { assertPublicHttpUrl } from "../utils/ssrf-guard.js";
 
 interface FetchedDocument {
   bytes: Uint8Array;
@@ -43,6 +44,12 @@ async function fetchByScheme(
     // https URIs go through the injected fetch directly — testHooks.fetchIpfs
     // is intentionally only consulted for ipfs:// URIs so https schemes
     // flow through real fetch logic during tests.
+    //
+    // SSRF guard: when running server-side on a public route accepting
+    // arbitrary ENS names, an owner-controlled URL could point at
+    // internal/private services. Reject any URL whose hostname resolves
+    // to a non-public IP before issuing the fetch.
+    await assertPublicHttpUrl(uri);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), options.timeoutMs);
     try {
@@ -482,6 +489,9 @@ export async function verifyAgentIdentity(
   // -------------------------------------------------------------------------
   const healthUrl = records["agent-endpoint[web]"].replace(/\/$/, "") + "/health";
   try {
+    // SSRF guard: agent-endpoint[web] is an owner-controlled URL. Reject
+    // any URL whose hostname resolves to a non-public IP before fetching.
+    await assertPublicHttpUrl(healthUrl);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let healthRes: Response;
@@ -526,6 +536,8 @@ export async function verifyAgentIdentity(
     result.layers.signature.challenge = challenge;
     const signUrl = records["agent-endpoint[web]"].replace(/\/$/, "") + "/sign";
     try {
+      // SSRF guard — same reasoning as the liveness probe above.
+      await assertPublicHttpUrl(signUrl);
       // Sign protocol: the daemon's /sign endpoint accepts `{message: <string>}`
       // and EIP-191 signs the literal string. Verifier sends the JCS-canonical
       // envelope as the message string so the byte-exact value is reproducible

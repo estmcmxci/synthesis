@@ -4,6 +4,7 @@ import {
   resolve,
   verifyAgentIdentity,
   getTextRecord,
+  getResolverAddress,
   createEnsClient,
   type AgentVerifyResult,
   type TrustProfile,
@@ -40,7 +41,12 @@ export default async function AgentExplorerPage({ params }: PageProps) {
   const rpcUrl = process.env.ETH_RPC_URL;
   const client = createEnsClient(rpcUrl);
 
-  const [trustProfile, verifyResult, chatEndpoint] = await Promise.all([
+  // Authoritative nonexistence signal — successful registry read returning
+  // address(0) means the name truly has no resolver. RPC failures throw
+  // and propagate to error.tsx instead of being conflated with absence.
+  // See PR #57 review (P1/P2 false-404 on transport failures).
+  const [resolverAddr, trustProfile, verifyResult, chatEndpoint] = await Promise.all([
+    getResolverAddress(client, ensName),
     resolve(ensName, { ensRpcUrl: rpcUrl }).catch((err) => {
       console.error("[agent-explorer] resolve failed:", err);
       return null;
@@ -49,15 +55,11 @@ export default async function AgentExplorerPage({ params }: PageProps) {
     getTextRecord(client, ensName, "agent-endpoint[chat]").catch(() => null),
   ]);
 
-  const allRecordsMissing = verifyResult.layers.records.missing.length === 9;
-
-  if (
-    verifyResult.identityCard.ownerAddress === null &&
-    allRecordsMissing &&
-    !trustProfile?.address
-  ) {
+  if (resolverAddr === null) {
     notFound();
   }
+
+  const allRecordsMissing = verifyResult.layers.records.missing.length === 9;
 
   return (
     <div className="px-8 md:px-16 py-16 md:py-24 max-w-5xl">

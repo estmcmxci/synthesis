@@ -158,6 +158,39 @@ export async function resolveAddress(
 }
 
 /**
+ * Read the resolver address for an ENS name from the registry.
+ *
+ * Returns null if the name has no resolver set (registry returns
+ * `address(0)`), and throws on RPC transport failure. The contrast with
+ * `getOwner` / `getTextRecords` (which both swallow errors and return
+ * empty/null fallbacks) is intentional: callers that need to distinguish
+ * "name does not exist" from "RPC failed" should use this function as
+ * the authoritative signal — a successful read returning null is the
+ * only positive proof of nonexistence.
+ */
+export async function getResolverAddress(
+  client: PublicClient,
+  name: string,
+): Promise<Address | null> {
+  const node = namehash(normalizeName(name));
+  const resolver = (await client.readContract({
+    address: ENS_REGISTRY_ADDRESS,
+    abi: [
+      {
+        type: "function",
+        name: "resolver",
+        stateMutability: "view",
+        inputs: [{ name: "node", type: "bytes32" }],
+        outputs: [{ name: "", type: "address" }],
+      },
+    ] as const,
+    functionName: "resolver",
+    args: [node],
+  })) as Address;
+  return resolver === zeroAddress ? null : resolver;
+}
+
+/**
  * Get the registry owner of an ENS name — the address that controls the
  * name and is authorized to sign records on its behalf.
  *
