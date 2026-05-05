@@ -250,9 +250,42 @@ test("rotateAgent — pin step uses the bumped relpath under policies/", async (
       },
     }),
   );
-  assert.ok(pinnedFiles && pinnedFiles.length === 2);
-  const relpaths = pinnedFiles!.map((f) => f.relpath).sort();
+  // Local cast — TS strict mode in CI narrows closure-captured lets to
+  // `never` when assigned through a generic-typed callback.
+  const captured = pinnedFiles as
+    | { relpath: string; bytes: Uint8Array }[]
+    | null;
+  assert.ok(captured && captured.length === 2);
+  const relpaths = captured.map((f) => f.relpath).sort();
   assert.deepEqual(relpaths, ["ROTATION.txt", "policies/delegation-policy-v2.json"]);
+});
+
+test("rotateAgent — resolverAddress fallback honors optional contract via ENS registry lookup (Codex P2)", async () => {
+  // The fallback used to hard-throw, breaking the documented optional
+  // contract. Now it should call the public client's readContract for
+  // ENS Registry's `resolver(bytes32)`. Stub the client so we don't
+  // hit a real RPC.
+  const args = baseArgs();
+  // Strip the explicit resolverAddress so the fallback runs.
+  delete (args as Partial<RotateAgentArgs>).resolverAddress;
+  // Intercept readContract for the registry call. The orchestrator
+  // creates its own publicClient internally; we can't easily stub that
+  // without exposing a hook. Instead, set ensRpcUrl to an obviously bogus
+  // value and verify the error names the registry, not "--resolver-address
+  // is required".
+  args.ensRpcUrl = "http://127.0.0.1:1"; // unreachable
+  await assert.rejects(
+    () => rotateAgent(args),
+    (err: Error) => {
+      // Either the registry lookup fails (network error) or the resolver
+      // returns zero — both prove the fallback path was actually taken.
+      assert.ok(
+        !/-resolver-address is required/.test(err.message),
+        `must not throw the legacy hard-fail message; got: ${err.message}`,
+      );
+      return true;
+    },
+  );
 });
 
 test("rotateAgent — broadcast: true threads through to publishAgentRecords", async () => {

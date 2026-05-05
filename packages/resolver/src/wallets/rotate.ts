@@ -31,7 +31,7 @@ import {
   type Chain,
 } from "viem";
 import { canonicalizeBytes } from "../utils/jcs.js";
-import { getTextRecords, getOwner } from "../utils/ens.js";
+import { getTextRecords } from "../utils/ens.js";
 import { fetchIpfsRaw } from "../utils/ipfs.js";
 import {
   pinDirectory,
@@ -303,28 +303,45 @@ async function readRecords(
   );
 }
 
+/** Mainnet ENS Registry (deterministic across networks that use the
+ * canonical deployment). Mirrors the constant in utils/ens.ts. */
+const ENS_REGISTRY: Address = "0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e";
+const REGISTRY_ABI = [
+  {
+    type: "function",
+    name: "resolver",
+    stateMutability: "view",
+    inputs: [{ name: "node", type: "bytes32" }],
+    outputs: [{ name: "", type: "address" }],
+  },
+] as const;
+
 async function defaultResolverFor(
   args: RotateAgentArgs,
   // biome-ignore lint/suspicious/noExplicitAny: viem's PublicClient generic
   client: any,
 ): Promise<Address> {
-  // Best-effort fallback: ask the registry for the resolver of the name.
-  // If that fails, the caller should pass --rpc to a Base RPC AND
-  // --resolver-address explicitly. The CLI does this lookup before
-  // calling rotateAgent so this branch shouldn't usually fire.
-  const { mainnet } = await import("viem/chains");
-  void mainnet;
-  void getOwner;
-  // Use ens-resolver-from-name pattern:
-  const ensClient = createPublicClient({
-    chain: { ...args.chain, id: 1 } as Chain,
-    transport: http(),
-  });
-  void ensClient;
-  void client;
-  throw new Error(
-    "rotateAgent: --resolver-address is required (CLI auto-resolves; library callers must pass)",
-  );
+  // Honor the documented optional contract: if the caller doesn't
+  // pre-supply resolverAddress, look it up from the ENS registry on
+  // mainnet. The `client` passed in is already configured for mainnet
+  // (constructed in the orchestrator above), so reuse it. Codex P2
+  // pointed out the previous fallback hard-threw, breaking non-CLI
+  // consumers of the optional field.
+  const { namehash } = await import("viem");
+  const { normalize } = await import("viem/ens");
+  const node = namehash(normalize(args.ensName));
+  const resolver = (await client.readContract({
+    address: ENS_REGISTRY,
+    abi: REGISTRY_ABI,
+    functionName: "resolver",
+    args: [node],
+  })) as Address;
+  if (resolver === "0x0000000000000000000000000000000000000000") {
+    throw new Error(
+      `rotateAgent: ENS registry returned no resolver for ${args.ensName} (zero address). The name may not exist on mainnet.`,
+    );
+  }
+  return resolver;
 }
 
 /**

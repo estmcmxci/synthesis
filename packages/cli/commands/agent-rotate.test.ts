@@ -97,6 +97,24 @@ test("agent-rotate schema — uses ENS_PRIVATE_KEY (NOT a forked env-var name, C
   );
 });
 
+test("agent-rotate.ts — receipt polling uses the mainnet RPC, NOT --rpc (Codex P1)", () => {
+  // Source-level fence. The receipt-polling client must construct from
+  // config!.rpcUrl (mainnet ENS RPC) — not from options.rpc which is
+  // the Base smart-account RPC. Mismatched chainId+RPC silently polls
+  // the wrong chain after a successful publish.
+  const cli = readFileSync(join(__dirname, "agent-rotate.ts"), "utf8");
+  // Find the createChainPublicClient call in the receipt-poll branch
+  // (under "Waiting for confirmations").
+  const pollSection = cli.slice(cli.indexOf("Waiting for confirmations"));
+  // The call must NOT include `options.rpc` as the second argument.
+  assert.ok(
+    !/createChainPublicClient\([^)]*options\.rpc/s.test(pollSection),
+    "receipt poll must not pass options.rpc — pass config.rpcUrl (mainnet) only",
+  );
+  // It must reference config.rpcUrl directly.
+  assert.match(pollSection, /createChainPublicClient\(config!\.chainId,\s*config!\.rpcUrl/);
+});
+
 test("RotateResult shape — newSessionKeyArtifact is the named field, not newAlias (Codex amendment 1)", () => {
   // The amendment renamed `newAlias` → `newSessionKeyArtifact`. A
   // regression fence ensures the resolver export stays renamed and the

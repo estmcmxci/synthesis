@@ -217,10 +217,14 @@ export async function agentRotate(options: AgentRotateCliOptions): Promise<Rotat
 
   stopSpinner();
 
-  // For --broadcast: wait for receipt(s).
+  // For --broadcast: wait for receipt(s). The publish multicall lands on
+  // mainnet (ENS lives there), so polling MUST use the mainnet RPC, not
+  // `options.rpc` which is the Base smart-account RPC. Codex P1 caught
+  // this — passing the Base RPC to a chainId=1 client polls the wrong
+  // chain for a mainnet tx and times out.
   if (options.broadcast && result!.publishPlan.txHashes && result!.publishPlan.txHashes.length > 0) {
     if (!isJson) startSpinner("Waiting for confirmations...");
-    const client = createChainPublicClient(config!.chainId, options.rpc ?? config!.rpcUrl);
+    const client = createChainPublicClient(config!.chainId, config!.rpcUrl);
     for (const hash of result!.publishPlan.txHashes) {
       const receipt = await client.waitForTransactionReceipt({
         hash,
