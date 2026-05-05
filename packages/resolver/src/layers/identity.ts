@@ -55,25 +55,35 @@ const CHAIN_MAP: Record<number, typeof base> = {
 export interface ResolveIdentityOptions {
   registries?: RegistryTarget[];
   ensRpcUrl?: string;
+  /**
+   * Inject text-record reads + on-chain verification for tests. When
+   * provided, no live network calls are made. The test hook receives the
+   * ENS name and key (e.g. `agent-ids`, `agent-registration[…][…]`) and
+   * should return the record value or null.
+   */
+  testHooks?: {
+    readTextRecord: (ensName: string, key: string) => Promise<string | null>;
+    verifyOnChain?: (
+      registry: RegistryTarget,
+      agentId: string,
+    ) => Promise<{ tokenURI: string | null; owner: string | null }>;
+  };
 }
 
 /**
  * Resolve ENSIP-25 identity for an ENS name.
  *
- * For each known registry, constructs all possible ENSIP-25 keys
- * (scanning agent IDs from text records), checks if the record is set,
- * and verifies the agent on-chain.
+ * Discovery: ENS exposes no text-record enumeration, so the resolver can't
+ * iterate over `agent-registration[<reg>][<id>]` keys directly. Instead, we
+ * use the `agent-ids` text record as an on-chain index of all agent IDs
+ * linked to this name — the same record `ensemble agent link` writes when
+ * publishing an ENSIP-25 record. Format: a JSON array of agent-ID strings,
+ * e.g. `["24994"]`. IDs supplied by the caller via `knownAgentIds` are
+ * merged on top of the index, so callers can still pre-seed when the index
+ * isn't published yet.
  *
- * Since we don't know the agent ID upfront, we scan by checking known
- * agent IDs from the ENS name's text records. The approach:
- * 1. For each registry, build the ERC-7930 prefix
- * 2. Try to find an agent-registration text record by scanning known IDs
- *    or by using a wildcard approach
- *
- * In practice, the resolver is given a name and must discover the agent ID.
- * We do this by scanning text record keys that match the ENSIP-25 pattern.
- * Since viem can't enumerate text records, we try known agent IDs if provided,
- * or fall back to scanning a reasonable range.
+ * For each (registry × agentId) pair we build the ENSIP-25 key, look it up
+ * as a text record, and verify the agent on-chain via tokenURI + ownerOf.
  */
 export async function resolveIdentity(
   ensName: string,
@@ -81,18 +91,59 @@ export async function resolveIdentity(
   options: ResolveIdentityOptions = {},
 ): Promise<IdentityResult> {
   const registries = options.registries ?? DEFAULT_REGISTRIES;
-  const ensClient = createEnsClient(options.ensRpcUrl);
+  const readText = options.testHooks
+    ? options.testHooks.readTextRecord
+    : (() => {
+        const ensClient = createEnsClient(options.ensRpcUrl);
+        return (name: string, key: string) => getTextRecord(ensClient, name, key);
+      })();
+
+  // Auto-discover agent IDs from the canonical `agent-ids` text record.
+  // Best-effort: a malformed value or RPC error degrades to using only the
+  // caller-supplied IDs rather than failing the whole layer.
+  const indexed: string[] = [];
+  const indexRaw = await readText(ensName, "agent-ids");
+  if (indexRaw) {
+    try {
+      const parsed = JSON.parse(indexRaw);
+      if (Array.isArray(parsed)) {
+        for (const id of parsed) {
+          if (typeof id === "string" && id.length > 0) indexed.push(id);
+        }
+      }
+    } catch {
+      // Non-JSON values are treated as no index — write side enforces JSON.
+    }
+  }
+  const merged = Array.from(new Set([...indexed, ...(knownAgentIds ?? [])]));
 
   for (const registry of registries) {
-    const agentIds = knownAgentIds ?? [];
-
-    for (const agentId of agentIds) {
+    for (const agentId of merged) {
       const key = buildEnsip25Key(registry.chainId, registry.address, agentId);
-      const value = await getTextRecord(ensClient, ensName, key);
+      const value = await readText(ensName, key);
 
       if (value && value.length > 0) {
-        // Found an ENSIP-25 record — verify on-chain
-        const onChain = await verifyOnChain(registry, agentId);
+        // Found an ENSIP-25 record — verify on-chain. Both `tokenURI` and
+        // `owner` must read successfully before we elevate to verified.
+        // verifyOnChain returns null fields for burned/nonexistent token
+        // IDs OR for transient RPC failures; treating either as a pass
+        // would let a stale `agent-ids` index falsely elevate trust. If
+        // this entry doesn't verify cleanly, `continue` so the scan can
+        // still find a valid (registry, id) pair further down the index.
+        //
+        // When `testHooks` is set, the contract is "no live network calls".
+        // If the caller stubs `readTextRecord` but not `verifyOnChain`,
+        // default to a null-returning stub rather than dropping into real
+        // RPC — otherwise a partially-stubbed test would silently hit the
+        // network the moment any ENSIP-25 record matched.
+        const onChain = options.testHooks
+          ? options.testHooks.verifyOnChain
+            ? await options.testHooks.verifyOnChain(registry, agentId)
+            : { tokenURI: null, owner: null }
+          : await verifyOnChain(registry, agentId);
+        if (onChain.tokenURI === null || onChain.owner === null) {
+          continue;
+        }
         const erc7930 = encodeErc7930Address(registry.chainId, registry.address);
 
         return {
