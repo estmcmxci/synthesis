@@ -134,3 +134,25 @@ export {
   type CreateLocalSignerOptions,
   type CreateNameraSignerOptions,
 } from "./wallets/index.js";
+
+export {
+  createKeystore,
+  decryptKeystore,
+  type KeystoreJson,
+  type DecryptedKey,
+} from "./wallets/keystore.js";
+
+export {
+  issueKeystore,
+  issueSmartAccount,
+  issueSessionKey,
+  readSessionKeyForRuntime,
+  type IssueKeystoreOptions,
+  type IssueKeystoreResult,
+  type IssueSmartAccountOptions,
+  type IssueSmartAccountResult,
+  type IssueSessionKeyOptions,
+  type IssueSessionKeyResult,
+  type SmartAccountFile,
+  type SessionKeyFile,
+} from "./wallets/namera-issue.js";
