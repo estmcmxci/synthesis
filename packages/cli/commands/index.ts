@@ -20,6 +20,7 @@ export { agentVerify } from "./agent-verify";
 export { agentPin } from "./agent-pin";
 export { agentPublish } from "./agent-publish";
 export { agentIssue } from "./agent-issue";
+export { agentRotate } from "./agent-rotate";
 export { personhoodCheck, personhoodRegister } from "./personhood";
 export { trust } from "./trust";
 export { gate } from "./gate";
