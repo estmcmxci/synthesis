@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { href: "/essay", label: "essay" },
   { href: "/trust", label: "trust" },
   { href: "/resolve", label: "resolve" },
+  { href: "/agent/emilemarcelagustin.eth", label: "agent", matchPrefix: "/agent" },
   { href: "/token", label: "token" },
 ] as const;
 
@@ -35,19 +36,25 @@ export function Sidebar() {
 
           {/* Navigation */}
           <nav className="flex flex-col gap-1.5">
-            {NAV_ITEMS.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className={`nav-link pl-0 py-1.5 text-sm transition-colors ${
-                  pathname === href
-                    ? "text-[var(--color-ink)] font-medium"
-                    : "text-[var(--color-ink-muted)]"
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
+            {NAV_ITEMS.map((item) => {
+              const active =
+                "matchPrefix" in item && item.matchPrefix
+                  ? pathname.startsWith(item.matchPrefix)
+                  : pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`nav-link pl-0 py-1.5 text-sm transition-colors ${
+                    active
+                      ? "text-[var(--color-ink)] font-medium"
+                      : "text-[var(--color-ink-muted)]"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
         </div>
 
@@ -69,19 +76,25 @@ export function Sidebar() {
           </span>
         </Link>
         <nav className="flex gap-4">
-          {NAV_ITEMS.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={`text-xs transition-colors ${
-                pathname === href
-                  ? "text-[var(--color-ink)] font-medium"
-                  : "text-[var(--color-ink-muted)]"
-              }`}
-            >
-              {label}
-            </Link>
-          ))}
+          {NAV_ITEMS.map((item) => {
+            const active =
+              "matchPrefix" in item && item.matchPrefix
+                ? pathname.startsWith(item.matchPrefix)
+                : pathname === item.href;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`text-xs transition-colors ${
+                  active
+                    ? "text-[var(--color-ink)] font-medium"
+                    : "text-[var(--color-ink-muted)]"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
       </header>
     </>

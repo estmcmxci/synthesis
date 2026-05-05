@@ -1,34 +1,41 @@
 import type { AgentVerifyResult } from "@synthesis/resolver";
 
-export function IdentityPanel({ result }: { result: AgentVerifyResult }) {
+export function VerificationPanel({ result }: { result: AgentVerifyResult }) {
   const { identityCard, layers, policy, ensName, verified } = result;
 
   return (
-    <section className="animate-fade-up">
+    <section className="animate-fade-up delay-2">
       <header className="mb-6">
         <p className="text-xs font-medium uppercase tracking-widest text-[var(--color-ink-muted)]">
-          TRL Identity Card
+          Deep Verification
         </p>
         <h2 className="mt-2 text-xl font-semibold tracking-tight text-[var(--color-ink)]">
-          {ensName}
+          ENSIP-64 Record Authenticity
         </h2>
-        <div className="mt-2 inline-flex items-baseline gap-2 px-3 py-1 rounded-md bg-[var(--color-surface-raised)] border border-[var(--color-border)]">
+        <p className="mt-2 max-w-2xl text-xs text-[var(--color-ink-muted)]">
+          Distinct from the trust profile above. The trust profile asks{" "}
+          <em>does this name represent a real, registered, signed, capable agent</em>. This panel
+          asks <em>are this agent&apos;s ENSIP-64 records cryptographically authentic</em> —
+          well-formed, schema-valid, hash-matching, internally consistent, and live. Mirrors the
+          output of <span className="font-mono">ensemble agent verify</span>.
+        </p>
+        <div className="mt-3 inline-flex items-baseline gap-2 px-3 py-1 rounded-md bg-[var(--color-surface-raised)] border border-[var(--color-border)]">
           <span className="text-[10px] font-medium uppercase tracking-widest text-[var(--color-ink-muted)]">
-            Verified
+            Verification
           </span>
           <span
             className={`text-sm font-semibold ${
               verified ? "text-[var(--color-pass)]" : "text-[var(--color-fail)]"
             }`}
           >
-            {verified ? "✓ all layers" : "✗ incomplete"}
+            {verified ? "✓ all 5 checks" : "✗ incomplete"}
           </span>
         </div>
       </header>
 
       <div className="space-y-1">
         <p className="text-xs font-medium uppercase tracking-widest text-[var(--color-ink-muted)] mb-2">
-          Identity
+          Identity Card
         </p>
         <KVCard
           rows={[
@@ -52,7 +59,7 @@ export function IdentityPanel({ result }: { result: AgentVerifyResult }) {
 
       <div className="mt-6 space-y-1">
         <p className="text-xs font-medium uppercase tracking-widest text-[var(--color-ink-muted)] mb-2">
-          Verification Layers
+          ENSIP-64 Checks
         </p>
 
         <LayerCard
