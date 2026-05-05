@@ -130,8 +130,16 @@ export async function resolveIdentity(
         // would let a stale `agent-ids` index falsely elevate trust. If
         // this entry doesn't verify cleanly, `continue` so the scan can
         // still find a valid (registry, id) pair further down the index.
-        const onChain = options.testHooks?.verifyOnChain
-          ? await options.testHooks.verifyOnChain(registry, agentId)
+        //
+        // When `testHooks` is set, the contract is "no live network calls".
+        // If the caller stubs `readTextRecord` but not `verifyOnChain`,
+        // default to a null-returning stub rather than dropping into real
+        // RPC — otherwise a partially-stubbed test would silently hit the
+        // network the moment any ENSIP-25 record matched.
+        const onChain = options.testHooks
+          ? options.testHooks.verifyOnChain
+            ? await options.testHooks.verifyOnChain(registry, agentId)
+            : { tokenURI: null, owner: null }
           : await verifyOnChain(registry, agentId);
         if (onChain.tokenURI === null || onChain.owner === null) {
           continue;

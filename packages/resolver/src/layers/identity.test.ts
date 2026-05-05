@@ -147,6 +147,27 @@ test("agent-ids index with a stale id followed by a fresh one — scan continues
   assert.equal(result.agentId, "24994");
 });
 
+test("testHooks without verifyOnChain — never hits the network, returns verified:false (Codex P2)", async () => {
+  // The testHooks contract guarantees no live network calls. A partial
+  // stub (readTextRecord only, no verifyOnChain) must not silently fall
+  // back to real RPC the moment an ENSIP-25 record matches. Default
+  // behavior: treat the missing hook as if on-chain verification failed
+  // (null fields), so the caller gets a clean verified:false.
+  const ensip25Key = buildEnsip25Key(BASE.chainId, BASE.address, "24994");
+  const result = await resolveIdentity("emilemarcelagustin.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    testHooks: {
+      readTextRecord: records({
+        "agent-ids": '["24994"]',
+        [ensip25Key]: "1",
+      }),
+      // verifyOnChain intentionally omitted
+    },
+  });
+  assert.equal(result.verified, false);
+  assert.equal(result.agentId, null);
+});
+
 test("agent-ids has an ID but ENSIP-25 record is missing — does not falsely verify", async () => {
   // Defends against a stale agent-ids index that lists IDs whose ENSIP-25
   // text records have been deleted or never written.
