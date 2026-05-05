@@ -24,7 +24,11 @@ async function captureRequest(
     }
     const formEntries: CapturedRequest["formEntries"] = [];
     if (init?.body instanceof FormData) {
-      for (const [name, value] of init.body.entries()) {
+      // FormData iteration: the standard exposes [Symbol.iterator] yielding
+      // [name, value] tuples but lib.dom.d.ts in some TS targets omits
+      // .entries(). Cast through the iterable shape to stay portable.
+      const iterable = init.body as unknown as Iterable<[string, FormDataEntryValue]>;
+      for (const [name, value] of iterable) {
         if (value instanceof File) {
           formEntries.push({ name, value: await value.arrayBuffer(), filename: value.name });
         } else {

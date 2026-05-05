@@ -13,7 +13,7 @@
  */
 
 import { readFileSync, readSync, statSync, readdirSync } from "node:fs";
-import { basename, join, relative } from "node:path";
+import { basename, join, relative, sep } from "node:path";
 import colors from "yoctocolors";
 import { keccak256, toHex } from "viem";
 import {
@@ -44,6 +44,11 @@ export interface PinResult extends PinDirectoryResult {
 /**
  * Walk `dir` and return all regular files as { relpath, bytes }. Skips
  * macOS metadata files (.DS_Store) — same exclusion the bash uses.
+ *
+ * Relpaths are always returned with POSIX `/` separators. `path.relative`
+ * returns native separators (backslashes on Windows), but Pinata filenames,
+ * `ipfs://<cid>/...` URLs, and `--policy <relpath>` matching all need
+ * forward slashes to be consistent across platforms.
  */
 function readDirRecursive(dir: string): PinDirectoryFile[] {
   const out: PinDirectoryFile[] = [];
@@ -54,7 +59,7 @@ function readDirRecursive(dir: string): PinDirectoryFile[] {
       if (entry.isDirectory()) {
         walk(full);
       } else if (entry.isFile()) {
-        const relpath = relative(dir, full);
+        const relpath = relative(dir, full).split(sep).join("/");
         out.push({ relpath, bytes: new Uint8Array(readFileSync(full)) });
       }
     }
