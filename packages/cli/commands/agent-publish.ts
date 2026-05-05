@@ -176,11 +176,17 @@ export function resolveRecords(
       "schemaUri (pass --schema explicitly, or pin a tree containing schemas/agent-schema-vN.json)",
     );
   }
+  // Whenever the pin output supplies a policy-hash but no delegationUri
+  // (e.g. operator pinned with `--policy -` so the policy bytes never had
+  // a relpath inside the upload), `--delegation` must be explicit. The
+  // earlier version of this check skipped when `--policy-hash` was passed,
+  // which let a `policy-hash` record land without a `delegation` URI —
+  // breaking verify integrity/binding downstream. The fail-loud now keys
+  // off pin's missing delegationUri + the absence of --delegation only.
   if (
     options.fromPinOutput &&
     options.fromPinOutput.length > 0 &&
     !options.delegation &&
-    options.policyHash === undefined &&
     pin.policyHash !== undefined &&
     !pin.delegationUri
   ) {

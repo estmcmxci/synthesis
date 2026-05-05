@@ -90,6 +90,32 @@ test("resolveRecords — fail-loud when --from-pin-output is set but schemaUri i
   assert.ok(missingFromPin.some((m) => /delegationUri/.test(m)));
 });
 
+test("resolveRecords — fail-loud on missing delegationUri even when --policy-hash is supplied (Codex P1)", () => {
+  // Earlier version of the gate skipped this check when --policy-hash
+  // was passed, letting an operator publish policy-hash without any
+  // delegation URI. Now the gate keys off pin's missing delegationUri
+  // + the absence of --delegation, regardless of --policy-hash.
+  const opts = {
+    name: "x.eth",
+    runtimePubkey: VALID_OPTS.runtimePubkey,
+    kernelWallet: VALID_OPTS.kernelWallet,
+    agentEndpointWeb: VALID_OPTS.agentEndpointWeb,
+    fromPinOutput: ["fake.json"],
+    // operator passed --policy-hash explicitly, but no --delegation
+    policyHash: "0x6f3878cb630f8d16e5f8eac858f8923d15d5475773c1205b97dab0b06b35c114",
+    schema: VALID_OPTS.schema, // explicit schema so schemaUri check is satisfied
+  };
+  // pin output has a policyHash but no delegationUri (the --policy - case)
+  const pin = {
+    policyHash: "0xabc...",
+  };
+  const { missingFromPin } = resolveRecords(opts, pin);
+  assert.ok(
+    missingFromPin.some((m) => /delegationUri/.test(m)),
+    "must fail-loud on missing delegationUri even when --policy-hash is set",
+  );
+});
+
 test("resolveRecords — fail-loud is OFF when --from-pin-output is not set (no missing-field complaints)", () => {
   // Caller passes everything explicitly; no pin-output; no fail-loud.
   const { missingFromPin } = resolveRecords(VALID_OPTS, {});

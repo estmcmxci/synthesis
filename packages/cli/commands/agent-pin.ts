@@ -51,7 +51,29 @@ export interface PinResult extends PinDirectoryResult {
   verified: boolean;
 }
 
-const AGENT_SCHEMA_RELPATH_RE = /^schemas?\/agent-schema-v\d+\.json$/;
+const AGENT_SCHEMA_RELPATH_RE = /^schemas?\/agent-schema-v(\d+)\.json$/;
+
+/**
+ * Deterministic selection across multiple agent-schema-v<N>.json files.
+ * Returns the ipfsUri of the highest-version match, or undefined if none.
+ * Filesystem traversal order isn't stable across platforms, so picking
+ * "the first match" can silently flip schema versions between runs.
+ */
+function pickHighestSchemaVersion(
+  files: { relpath: string; ipfsUri: string }[],
+): string | undefined {
+  let best: { version: number; ipfsUri: string } | undefined;
+  for (const f of files) {
+    const m = AGENT_SCHEMA_RELPATH_RE.exec(f.relpath);
+    if (!m) continue;
+    const version = Number(m[1]);
+    if (!Number.isFinite(version)) continue;
+    if (!best || version > best.version) {
+      best = { version, ipfsUri: f.ipfsUri };
+    }
+  }
+  return best?.ipfsUri;
+}
 
 /**
  * Walk `dir` and return all regular files as { relpath, bytes }. Skips
@@ -226,9 +248,7 @@ export async function agentPin(options: AgentPinCliOptions): Promise<PinResult> 
     if (fail) {
       const message = `gateway probe failed: ${fail.relpath} → ${fail.reason}`;
       if (isJson) {
-        const failureSchemaFile = pinned.files.find((f) =>
-          AGENT_SCHEMA_RELPATH_RE.test(f.relpath),
-        );
+        const failureSchemaUri = pickHighestSchemaVersion(pinned.files);
         const failureDelegationUri =
           policyRelpath && policyRelpath !== "<stdin>"
             ? pinned.files.find((f) => f.relpath === policyRelpath)?.ipfsUri
@@ -240,7 +260,7 @@ export async function agentPin(options: AgentPinCliOptions): Promise<PinResult> 
               policyHash,
               policyRelpath,
               delegationUri: failureDelegationUri,
-              schemaUri: failureSchemaFile?.ipfsUri,
+              schemaUri: failureSchemaUri,
               verified: false,
               error: message,
             },
@@ -261,15 +281,16 @@ export async function agentPin(options: AgentPinCliOptions): Promise<PinResult> 
   // commands consume them by name rather than pattern-matching files[].
   // - delegationUri: only for non-stdin policies (a stdin policy has no
   //   relpath in the upload — there's no ipfs:// URI to expose).
-  // - schemaUri: matches the canonical schemas/agent-schema-vN.json layout.
+  // - schemaUri: matches the canonical schemas/agent-schema-vN.json
+  //   layout. When multiple schema versions exist in one pin (e.g. v1
+  //   and v2 during a transition), pick the highest version
+  //   deterministically rather than relying on filesystem traversal
+  //   order — which is not stable across platforms.
   let delegationUri: string | undefined;
   if (policyRelpath && policyRelpath !== "<stdin>") {
     delegationUri = pinned.files.find((f) => f.relpath === policyRelpath)?.ipfsUri;
   }
-  const schemaFile = pinned.files.find((f) =>
-    AGENT_SCHEMA_RELPATH_RE.test(f.relpath),
-  );
-  const schemaUri = schemaFile?.ipfsUri;
+  const schemaUri = pickHighestSchemaVersion(pinned.files);
 
   const result: PinResult = {
     ...pinned,

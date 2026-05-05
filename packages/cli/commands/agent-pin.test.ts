@@ -106,6 +106,36 @@ test("agentPin --policy <relpath> — computes policyHash + emits delegationUri 
   }
 });
 
+test("agentPin — schemaUri is deterministic when multiple agent-schema-v*.json exist (highest version wins)", async () => {
+  // Filesystem traversal order isn't stable across platforms; without
+  // explicit selection logic the emitted schemaUri could silently flip
+  // between v1 and v2 across runs. Locked to highest version.
+  const dir = makeTmpDir({
+    "README.md": "hi",
+    "schemas/agent-schema-v1.json": "{}",
+    "schemas/agent-schema-v2.json": "{}",
+    "schemas/agent-schema-v10.json": "{}",
+  });
+  try {
+    const result = await withEnv("PINATA_JWT", "TEST_JWT", () =>
+      withMockedFetch(
+        (url) =>
+          url.includes("pinFileToIPFS")
+            ? new Response(JSON.stringify({ IpfsHash: FAKE_CID }), { status: 200 })
+            : new Response("ok", { status: 200 }),
+        () => agentPin({ dir, format: "json" }),
+      ),
+    );
+    assert.equal(
+      result.schemaUri,
+      `ipfs://${FAKE_CID}/schemas/agent-schema-v10.json`,
+      "must pick v10 (highest), not v1 or v2",
+    );
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
+});
+
 test("agentPin — emits schemaUri when files[] contains schemas/agent-schema-vN.json", async () => {
   const dir = makeTmpDir({
     "README.md": "hi",
