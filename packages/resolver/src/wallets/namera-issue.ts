@@ -311,6 +311,9 @@ export async function issueSessionKey(
   const gasCapWei = opts.gasCapWei ?? DEFAULT_GAS_CAP_WEI;
   const validUntil = Math.floor(Date.now() / 1000) + ttlHours * 3600;
 
+  // We still create the account client to get back the deterministic
+  // kernel address — we record it in the session-key file so the runtime
+  // adapter can verify it matches what's on ENS later.
   const createAccount = opts._createAccountClient ?? createEcdsaAccountClient;
   const accountClient = await createAccount({
     type: "ecdsa",
@@ -333,12 +336,20 @@ export async function issueSessionKey(
   ];
 
   const createSk = opts._createSessionKey ?? createEcdsaSessionKey;
+  // `clients` is an array of PUBLIC clients (one per chain) — NOT kernel-
+  // account clients. namera-ai/sdk re-derives the kernel account internally
+  // for each chain via `createKernelAccount(client, ...)`, where `client`
+  // must be the public RPC client (zerodev calls `eth_call` on it for
+  // `getSenderAddress`). Passing the kernel-account client here routes
+  // simulation through the BUNDLER transport — which on Pimlico's public
+  // tier strips eth_call revert data, breaking the parser at
+  // @zerodev/sdk/actions/public/getSenderAddress.ts:165.
   const result = await createSk({
     type: "ecdsa",
     accountType: "ecdsa",
     entrypointVersion: "0.7" satisfies EntryPointVersion,
     kernelVersion,
-    clients: [accountClient],
+    clients: [publicClient],
     signer: ownerAccount,
     sessionPrivateKey,
     policies,
