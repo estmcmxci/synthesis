@@ -38,8 +38,20 @@ export interface AgentPinCliOptions {
 export interface PinResult extends PinDirectoryResult {
   policyHash?: string;
   policyRelpath?: string;
+  /** ipfs:// URI of the pinned policy doc — set whenever `policyRelpath`
+   * resolves to a real file in the upload (i.e. NOT for stdin pins).
+   * Mirrors `policyRelpath` as a publish-ready URI so downstream commands
+   * (`agent publish --from-pin-output`) consume a named field instead of
+   * pattern-matching `files[]`. */
+  delegationUri?: string;
+  /** ipfs:// URI of the agent record schema — set when the pinned tree
+   * contains `schemas/agent-schema-v<N>.json`. The recognized convention
+   * is `^schemas?\/agent-schema-v\d+\.json$`. */
+  schemaUri?: string;
   verified: boolean;
 }
+
+const AGENT_SCHEMA_RELPATH_RE = /^schemas?\/agent-schema-v\d+\.json$/;
 
 /**
  * Walk `dir` and return all regular files as { relpath, bytes }. Skips
@@ -214,7 +226,28 @@ export async function agentPin(options: AgentPinCliOptions): Promise<PinResult> 
     if (fail) {
       const message = `gateway probe failed: ${fail.relpath} → ${fail.reason}`;
       if (isJson) {
-        console.log(JSON.stringify({ ...pinned, policyHash, policyRelpath, verified: false, error: message }, null, 2));
+        const failureSchemaFile = pinned.files.find((f) =>
+          AGENT_SCHEMA_RELPATH_RE.test(f.relpath),
+        );
+        const failureDelegationUri =
+          policyRelpath && policyRelpath !== "<stdin>"
+            ? pinned.files.find((f) => f.relpath === policyRelpath)?.ipfsUri
+            : undefined;
+        console.log(
+          JSON.stringify(
+            {
+              ...pinned,
+              policyHash,
+              policyRelpath,
+              delegationUri: failureDelegationUri,
+              schemaUri: failureSchemaFile?.ipfsUri,
+              verified: false,
+              error: message,
+            },
+            null,
+            2,
+          ),
+        );
       } else {
         console.error(colors.red(`✗ ${message}`));
       }
@@ -224,10 +257,26 @@ export async function agentPin(options: AgentPinCliOptions): Promise<PinResult> 
     verified = true;
   }
 
+  // Promote two named ipfs:// URIs to first-class fields so downstream
+  // commands consume them by name rather than pattern-matching files[].
+  // - delegationUri: only for non-stdin policies (a stdin policy has no
+  //   relpath in the upload — there's no ipfs:// URI to expose).
+  // - schemaUri: matches the canonical schemas/agent-schema-vN.json layout.
+  let delegationUri: string | undefined;
+  if (policyRelpath && policyRelpath !== "<stdin>") {
+    delegationUri = pinned.files.find((f) => f.relpath === policyRelpath)?.ipfsUri;
+  }
+  const schemaFile = pinned.files.find((f) =>
+    AGENT_SCHEMA_RELPATH_RE.test(f.relpath),
+  );
+  const schemaUri = schemaFile?.ipfsUri;
+
   const result: PinResult = {
     ...pinned,
     policyHash,
     policyRelpath,
+    delegationUri,
+    schemaUri,
     verified,
   };
 
