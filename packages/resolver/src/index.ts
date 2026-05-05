@@ -52,6 +52,24 @@ export {
 } from "./layers/skill.js";
 
 export {
+  verifyAgentIdentity,
+  AGENT_RECORD_KEYS,
+  AgentVerifyErrorCode,
+  type AgentVerifyOptions,
+  type AgentVerifyResult,
+  type IdentityCard,
+  type LayerResultRecords,
+  type LayerResultSchema,
+  type LayerResultIntegrity,
+  type LayerResultBinding,
+  type LayerResultLiveness,
+  type LayerResultSignature,
+  type AgentRecordKey,
+} from "./layers/agent-verify.js";
+
+export { canonicalize, canonicalizeBytes } from "./utils/jcs.js";
+
+export {
   createEnsClient,
   normalizeName,
   getTextRecord,

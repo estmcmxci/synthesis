@@ -1,0 +1,19 @@
+{
+  "_comment": "Frozen ENSIP-64 text records for emilemarcelagustin.eth. Source: canonical tuple in agency repo (deploy/ens-agent/.env.deploy + memory note). Frozen 2026-05-05 for offline test fixtures.",
+  "ensName": "emilemarcelagustin.eth",
+  "ownerAddress": "0xeb0ABB367540f90B57b3d5719fd2b9c740a15022",
+  "agentId": "24994",
+  "registryChain": "eip155:8453",
+  "registryAddress": "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+  "records": {
+    "class": "Agent",
+    "schema": "ipfs://bafybeighgfsdllcwlb7uvga5foqonx52vnoryede72jo6k2a4rtj5naq3i/schemas/agent-schema-v1.json",
+    "runtime-pubkey": "0x8973B6897554017d208DBeE2Ef5Fb8Fb046A6aEB",
+    "runtime-status": "active",
+    "kernel-wallet": "0xEc0d3C782C6087235Ab16d8c4d4188d10DFD796A",
+    "agent-endpoint[web]": "https://xxje1rfb.agents.pinata.cloud/app",
+    "delegation": "ipfs://bafybeicqnxyjsvro7ipmdhhzymtk5y2qbaudzmtgggllt7midikdxkmoxi/policies/delegation-policy-v1.json",
+    "policy-hash": "0x6f3878cb630f8d16e5f8eac858f8923d15d5475773c1205b97dab0b06b35c114",
+    "policy-version": "v1"
+  }
+}

@@ -98,3 +98,77 @@ export function cidToUri(cid: string): string {
 export function cidToGatewayUrl(cid: string, gateway?: string): string {
   return `${gateway ?? PUBLIC_GATEWAYS[0]}${cid}`;
 }
+
+export interface FetchIpfsRawOptions {
+  /**
+   * Gateway base URLs (each must end with `/ipfs/` or include the trailing
+   * slash). First successful 200 wins. If omitted, defaults to PUBLIC_GATEWAYS.
+   */
+  gateways?: string[];
+  /** Per-request timeout in ms. Default: 10_000. */
+  timeoutMs?: number;
+}
+
+export interface FetchIpfsRawResult {
+  /** Winning gateway base URL. */
+  gateway: string;
+  /** Raw response body bytes — preserved exactly as served, for hashing. */
+  bytes: Uint8Array;
+}
+
+/**
+ * Race an IPFS URI across multiple gateways. First 200 wins; non-2xx and
+ * network errors are dropped. The whole race rejects only if every gateway
+ * fails or the overall timeout fires.
+ *
+ * Use this — not `fetchFromIpfs` — when the caller will hash the response
+ * bytes (e.g. policy-hash verification): we need to surface raw bytes, not
+ * a string that has been through `Response.text()` re-encoding.
+ */
+export async function fetchIpfsRaw(
+  uri: string,
+  options: FetchIpfsRawOptions = {},
+): Promise<FetchIpfsRawResult> {
+  // Parse `ipfs://<cid>[<path>]` directly. Note: extractCid() returns the
+  // entire CID-plus-path for multi-segment URIs, so don't reuse it here —
+  // we need cid and path as separate strings to avoid duplicating the path
+  // when we build the gateway URL.
+  const m = uri.match(/^ipfs:\/\/([^/]+)(\/.*)?$/);
+  if (!m) {
+    throw new Error(`Not an IPFS URI: ${uri}`);
+  }
+  const cid = m[1];
+  const path = m[2] ?? "";
+  const gateways = options.gateways?.length ? options.gateways : PUBLIC_GATEWAYS;
+  const timeoutMs = options.timeoutMs ?? 10_000;
+
+  const errors: string[] = [];
+  const attempts = gateways.map(async (gateway) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const url = `${gateway}${cid}${path}`;
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(`${gateway} → HTTP ${response.status}`);
+      }
+      const buffer = await response.arrayBuffer();
+      return { gateway, bytes: new Uint8Array(buffer) };
+    } finally {
+      clearTimeout(timer);
+    }
+  });
+
+  // Promise.any — first fulfillment wins. Aggregates all rejections if none.
+  try {
+    return await Promise.any(attempts);
+  } catch (err) {
+    const aggregate = err as AggregateError;
+    for (const e of aggregate.errors ?? []) {
+      errors.push((e as Error).message ?? String(e));
+    }
+    throw new Error(
+      `All IPFS gateways failed for ${uri}: ${errors.join("; ")}`,
+    );
+  }
+}

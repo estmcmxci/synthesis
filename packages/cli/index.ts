@@ -28,6 +28,7 @@ import {
 	registerAgent,
 	linkAgent,
 	agentInfo,
+	agentVerify,
 	personhoodCheck,
 	personhoodRegister,
 	trust as trustCmd,
@@ -784,6 +785,74 @@ agent.command("info", {
 	async run({ args, options }) {
 		await agentInfo({ agentId: args.agentId, chain: options.chain });
 		return { queried: args.agentId };
+	},
+});
+
+agent.command("verify", {
+	description:
+		"Verify an ENS-bound agent's identity through 5 layered checks (records, schema, integrity, binding, liveness). Add --probe-sign for a 6th signature challenge.",
+	args: z.object({
+		name: z
+			.string()
+			.describe("ENS name to verify (e.g., emilemarcelagustin.eth)"),
+	}),
+	options: z.object({
+		probeSign: z
+			.boolean()
+			.optional()
+			.describe(
+				"POST a unique challenge to <agent-endpoint[web]>/sign and assert recovered signer == runtime-pubkey",
+			),
+		ipfsGateway: z
+			.array(z.string())
+			.optional()
+			.describe(
+				"Override the IPFS gateway list (repeatable). First 200 wins. Default: w3s.link, gateway.pinata.cloud, cloudflare-ipfs.com, ipfs.io",
+			),
+		rpc: z
+			.string()
+			.optional()
+			.describe("Override the ENS-mainnet RPC URL (default: $ETH_RPC_URL or https://eth.drpc.org)"),
+		timeout: z
+			.string()
+			.optional()
+			.describe("Per-network-call timeout in ms (default: 10000)"),
+		format: z
+			.enum(["json"])
+			.optional()
+			.describe("Emit a structured AgentVerifyResult on stdout instead of the human layout"),
+		explain: z
+			.boolean()
+			.optional()
+			.describe("Print debug detail per layer (records, hash inputs, challenge nonce, signature value)"),
+	}),
+	alias: { probeSign: "p", format: "f" },
+	examples: [
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			description: "Run all 5 verification layers",
+		},
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			options: { probeSign: true },
+			description: "Add the 6th signature-challenge layer",
+		},
+		{
+			args: { name: "emilemarcelagustin.eth" },
+			options: { format: "json" },
+			description: "Machine-readable output for the explorer route",
+		},
+	],
+	async run({ args, options }) {
+		return await agentVerify({
+			name: args.name,
+			probeSign: options.probeSign,
+			ipfsGateway: options.ipfsGateway,
+			rpc: options.rpc,
+			timeout: options.timeout,
+			format: options.format,
+			explain: options.explain,
+		});
 	},
 });
 
