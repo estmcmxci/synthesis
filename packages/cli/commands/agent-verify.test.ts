@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { AgentVerifyErrorCode, type AgentVerifyResult } from "@synthesis/resolver";
-import { exitCodeFor, formatResult } from "./agent-verify";
+import { exitCodeFor, formatResult, agentVerify } from "./agent-verify";
 
 function strip(s: string): string {
   // remove ANSI escape sequences so tests don't depend on the colors lib
@@ -113,6 +113,28 @@ test("exitCodeFor — 0 on verified, 1 on failure", () => {
   assert.equal(exitCodeFor(baseResult), 0);
   const failed = { ...baseResult, verified: false };
   assert.equal(exitCodeFor(failed), 1);
+});
+
+test("agentVerify rejects non-numeric --timeout with exit code 2", async () => {
+  const prevExit = process.exitCode;
+  process.exitCode = 0;
+  await assert.rejects(
+    () => agentVerify({ name: "vitalik.eth", timeout: "foo" }),
+    /Invalid --timeout/,
+  );
+  assert.equal(process.exitCode, 2);
+  process.exitCode = prevExit;
+});
+
+test("agentVerify rejects negative --timeout with exit code 2", async () => {
+  const prevExit = process.exitCode;
+  process.exitCode = 0;
+  await assert.rejects(
+    () => agentVerify({ name: "vitalik.eth", timeout: "-5" }),
+    /Invalid --timeout/,
+  );
+  assert.equal(process.exitCode, 2);
+  process.exitCode = prevExit;
 });
 
 test("formatResult json — failure carries error codes verbatim", () => {

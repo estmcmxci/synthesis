@@ -16,6 +16,53 @@ import {
   getOwner,
 } from "../utils/ens.js";
 import { fetchIpfsRaw } from "../utils/ipfs.js";
+
+interface FetchedDocument {
+  bytes: Uint8Array;
+  gateway: string;
+}
+
+/**
+ * Fetch a `schema` / `delegation` document by URI scheme. The records-layer
+ * regex accepts `ipfs://`, `https://`, and `cbor:` URIs to match the agent
+ * schema spec — so we must support fetching all three (or surface an explicit
+ * error). `cbor:` is reserved for a future binary-encoded variant and is not
+ * yet implemented; we reject it with a clear message rather than letting
+ * downstream JSON.parse fail.
+ */
+async function fetchByScheme(
+  uri: string,
+  options: { gateways?: string[]; timeoutMs: number; fetch: typeof fetch },
+  testHooks?: AgentVerifyOptions["testHooks"],
+): Promise<FetchedDocument> {
+  if (uri.startsWith("ipfs://")) {
+    if (testHooks?.fetchIpfs) return testHooks.fetchIpfs(uri);
+    return fetchIpfsRaw(uri, { gateways: options.gateways, timeoutMs: options.timeoutMs });
+  }
+  if (uri.startsWith("https://")) {
+    // https URIs go through the injected fetch directly — testHooks.fetchIpfs
+    // is intentionally only consulted for ipfs:// URIs so https schemes
+    // flow through real fetch logic during tests.
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), options.timeoutMs);
+    try {
+      const response = await options.fetch(uri, { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(`${uri} → HTTP ${response.status}`);
+      }
+      const buffer = await response.arrayBuffer();
+      return { bytes: new Uint8Array(buffer), gateway: new URL(uri).origin };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  if (uri.startsWith("cbor:")) {
+    throw new Error(
+      `cbor: URI scheme not yet supported in agent verify v0.1 (only ipfs:// and https://). URI: ${uri}`,
+    );
+  }
+  throw new Error(`Unsupported URI scheme: ${uri}`);
+}
 import { canonicalizeBytes } from "../utils/jcs.js";
 import {
   validate as validateSchema,
@@ -82,7 +129,9 @@ export interface AgentVerifyOptions {
       ensName: string,
       keys: readonly string[],
     ) => Promise<Record<string, string>>;
-    fetchIpfs: (uri: string) => Promise<{ bytes: Uint8Array; gateway: string }>;
+    /** Only consulted for `ipfs://` URIs. `https://` URIs flow through
+     * `options.fetch`, and `cbor:` is rejected unconditionally. */
+    fetchIpfs?: (uri: string) => Promise<{ bytes: Uint8Array; gateway: string }>;
     getOwner?: (ensName: string) => Promise<Address | null>;
   };
 }
@@ -318,12 +367,11 @@ export async function verifyAgentIdentity(
 
   let agentSchema: Record<string, unknown> | null = null;
   try {
-    const fetched = options.testHooks
-      ? await options.testHooks.fetchIpfs(schemaUri)
-      : await fetchIpfsRaw(schemaUri, {
-          gateways: options.ipfsGateways,
-          timeoutMs,
-        });
+    const fetched = await fetchByScheme(
+      schemaUri,
+      { gateways: options.ipfsGateways, timeoutMs, fetch: fetchImpl },
+      options.testHooks,
+    );
     agentSchema = JSON.parse(new TextDecoder().decode(fetched.bytes));
   } catch (err) {
     result.layers.schema.passed = false;
@@ -349,12 +397,11 @@ export async function verifyAgentIdentity(
   // -------------------------------------------------------------------------
   let policyDoc: PolicyDoc | null = null;
   try {
-    const fetched = options.testHooks
-      ? await options.testHooks.fetchIpfs(records.delegation)
-      : await fetchIpfsRaw(records.delegation, {
-          gateways: options.ipfsGateways,
-          timeoutMs,
-        });
+    const fetched = await fetchByScheme(
+      records.delegation,
+      { gateways: options.ipfsGateways, timeoutMs, fetch: fetchImpl },
+      options.testHooks,
+    );
     policyDoc = JSON.parse(new TextDecoder().decode(fetched.bytes));
     result.layers.integrity.policyGateway = fetched.gateway;
   } catch (err) {

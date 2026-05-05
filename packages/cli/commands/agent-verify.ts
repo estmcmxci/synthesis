@@ -48,10 +48,27 @@ export async function agentVerify(options: AgentVerifyCliOptions): Promise<Agent
       (arg === "-f" && arr[i + 1] === "json"),
   );
   const isJson = options.format === "json" || argvSaysJson;
+  // Defense-in-depth: the incur schema regexes timeout to digits, but be
+  // explicit so a future schema change can't silently produce NaN here.
+  let timeoutMs: number | undefined;
+  if (options.timeout !== undefined) {
+    const parsed = Number(options.timeout);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      const message = `Invalid --timeout: "${options.timeout}" (expected a positive integer in ms)`;
+      if (isJson) {
+        console.log(JSON.stringify({ error: message }, null, 2));
+      } else {
+        console.error(colors.red(message));
+      }
+      process.exitCode = 2;
+      throw new Error(message);
+    }
+    timeoutMs = parsed;
+  }
   const verifyOptions: AgentVerifyOptions = {
     ensRpcUrl: options.rpc,
     ipfsGateways: options.ipfsGateway,
-    timeoutMs: options.timeout ? Number(options.timeout) : undefined,
+    timeoutMs,
     probeSign: options.probeSign,
   };
 

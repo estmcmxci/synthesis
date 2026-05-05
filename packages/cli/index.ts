@@ -815,6 +815,7 @@ agent.command("verify", {
 			.describe("Override the ENS-mainnet RPC URL (default: $ETH_RPC_URL or https://eth.drpc.org)"),
 		timeout: z
 			.string()
+			.regex(/^\d+$/, "must be a positive integer (ms)")
 			.optional()
 			.describe("Per-network-call timeout in ms (default: 10000)"),
 		format: z

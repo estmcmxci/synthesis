@@ -265,6 +265,67 @@ test("probe-sign mismatch — daemon signs with a different key ⇒ signature la
   assert.equal(result.verified, false);
 });
 
+test("https:// URIs flow through plain fetch, not the IPFS gateway race", async () => {
+  // A deployment using https:// for `schema` and `delegation` (allowed by
+  // the records-layer regex and the agent-schema spec) must be fetchable.
+  // testHooks.fetchIpfs is intentionally absent so https traffic goes
+  // through options.fetch.
+  const httpsRecords = {
+    ...recordsFixture.records,
+    schema: "https://emilemarcelagustin.eth.limo/schemas/agent-schema-v1.json",
+    delegation: "https://emilemarcelagustin.eth.limo/policies/delegation-policy-v1.json",
+  };
+  let httpsCalls = 0;
+  const fetchMock: typeof fetch = async (input: RequestInfo | URL) => {
+    const url = typeof input === "string" ? input : input.toString();
+    if (url.endsWith("/health")) return new Response("{}", { status: 200 });
+    if (url.includes("agent-schema-v1.json")) {
+      httpsCalls++;
+      return new Response(agentSchemaBytes, { status: 200 });
+    }
+    if (url.includes("delegation-policy-v1.json")) {
+      httpsCalls++;
+      return new Response(policyBytes, { status: 200 });
+    }
+    throw new Error(`unexpected fetch ${url}`);
+  };
+  const result = await verifyAgentIdentity("emilemarcelagustin.eth", {
+    fetch: fetchMock,
+    testHooks: {
+      readRecords: async () => httpsRecords,
+      // No fetchIpfs hook — https branch in fetchByScheme handles both
+      getOwner: async () => recordsFixture.ownerAddress as `0x${string}`,
+    },
+  });
+  assert.equal(httpsCalls, 2, "schema + policy should each be fetched once via https");
+  assert.equal(result.layers.records.passed, true);
+  assert.equal(result.layers.schema.passed, true);
+  assert.equal(result.layers.integrity.passed, true);
+});
+
+test("cbor: URI — rejected with explicit unsupported-scheme error", async () => {
+  const cborRecords = {
+    ...recordsFixture.records,
+    schema: "cbor:bafy/agent-schema-v1.cbor",
+  };
+  const result = await verifyAgentIdentity("emilemarcelagustin.eth", {
+    fetch: (async () => new Response("{}", { status: 200 })) as typeof fetch,
+    testHooks: {
+      readRecords: async () => cborRecords,
+      fetchIpfs: async () => {
+        throw new Error("should not be called for cbor:");
+      },
+      getOwner: async () => recordsFixture.ownerAddress as `0x${string}`,
+    },
+  });
+  assert.equal(result.layers.schema.passed, false);
+  assert.equal(
+    result.layers.schema.errorCode,
+    AgentVerifyErrorCode.SCHEMA_FETCH_FAILED,
+  );
+  assert.ok(result.errors.some((e) => /cbor:/.test(e)));
+});
+
 test("AGENT_RECORD_KEYS is the locked 9-key list", () => {
   assert.equal(AGENT_RECORD_KEYS.length, 9);
   assert.ok(AGENT_RECORD_KEYS.includes("policy-hash"));
