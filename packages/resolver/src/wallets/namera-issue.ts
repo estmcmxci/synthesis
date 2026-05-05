@@ -176,7 +176,17 @@ export interface IssueSmartAccountOptions {
 export interface IssueSmartAccountResult {
   alias: string;
   address: Address;
+  /**
+   * Human chain label as recorded on disk. When `created: false`, this
+   * comes from the persisted smart-account file — NOT from the caller's
+   * `chainLabel` parameter — so callers detect drift instead of silently
+   * agreeing with whatever the latest run requested.
+   */
+  chain: string;
   chainId: number;
+  kernelVersion: string;
+  /** bigint serialized as base-10 string, matching the on-disk shape. */
+  index: string;
   smartAccountPath: string;
   created: boolean;
 }
@@ -188,10 +198,26 @@ export async function issueSmartAccount(
   const path = smartAccountPath(storeDir, opts.alias);
   if (existsSync(path)) {
     const existing = readJson<SmartAccountFile>(path);
+    // Drift check: if the caller passed a chain that disagrees with the
+    // persisted file, refuse rather than silently returning the wrong
+    // chain. The smart-account address is bound to the chain where it was
+    // derived; reissuing with --chain base-sepolia after a base mainnet
+    // run would otherwise produce an IssueResult with chainId=84532 and a
+    // kernel address that's actually on chainId=8453.
+    if (existing.chainId !== opts.chain.id) {
+      throw new Error(
+        `smart-account file at ${path} is bound to chainId=${existing.chainId} (chain=${existing.chain}); ` +
+          `caller requested chainId=${opts.chain.id} (chain=${opts.chainLabel}). ` +
+          `rm the file to re-issue under a different chain.`,
+      );
+    }
     return {
       alias: opts.alias,
       address: existing.address,
+      chain: existing.chain,
       chainId: existing.chainId,
+      kernelVersion: existing.kernelVersion,
+      index: existing.index,
       smartAccountPath: path,
       created: false,
     };
@@ -235,7 +261,10 @@ export async function issueSmartAccount(
   return {
     alias: opts.alias,
     address: file.address,
-    chainId: opts.chain.id,
+    chain: file.chain,
+    chainId: file.chainId,
+    kernelVersion: file.kernelVersion,
+    index: file.index,
     smartAccountPath: path,
     created: true,
   };
@@ -254,6 +283,14 @@ export interface IssueSessionKeyOptions {
   rpc: string;
   bundlerUrl: string;
   kernelVersion?: string;
+  /**
+   * Smart-account derivation index. MUST match what was used at
+   * `issueSmartAccount` time — the kernel address is `f(owner, index,
+   * kernelVersion)` and a different index produces a different kernel
+   * address. Default 0n, but the CLI threads through whatever was
+   * passed to `agent issue --index`.
+   */
+  index?: bigint;
   ttlHours?: number; // default 168
   gasCapWei?: bigint; // default 0.001 ETH
   storeDir?: string;
@@ -267,6 +304,8 @@ export interface IssueSessionKeyResult {
   alias: string;
   sessionKeyAddress: Address;
   kernelWallet: Address;
+  /** Human chain label, sourced from the persisted file when it exists. */
+  chain: string;
   chainId: number;
   validUntil: number;
   ttlHours: number;
@@ -284,10 +323,18 @@ export async function issueSessionKey(
   const path = sessionKeyPath(storeDir, opts.alias);
   if (existsSync(path)) {
     const existing = readJson<SessionKeyFile>(path);
+    if (existing.chainId !== opts.chain.id) {
+      throw new Error(
+        `session-key file at ${path} is bound to chainId=${existing.chainId} (chain=${existing.chain}); ` +
+          `caller requested chainId=${opts.chain.id} (chain=${opts.chainLabel}). ` +
+          `rm the file to re-issue under a different chain.`,
+      );
+    }
     return {
       alias: opts.alias,
       sessionKeyAddress: existing.sessionKeyAddress,
       kernelWallet: existing.kernelWallet,
+      chain: existing.chain,
       chainId: existing.chainId,
       validUntil: existing.validUntil,
       ttlHours: existing.ttlHours,
@@ -314,7 +361,12 @@ export async function issueSessionKey(
   // We still create the account client to get back the deterministic
   // kernel address — we record it in the session-key file so the runtime
   // adapter can verify it matches what's on ENS later.
+  // Re-derive the kernel-account client using the SAME `index` that was
+  // passed to `issueSmartAccount`. Without this, --index N>0 would
+  // produce a session-key bound to a kernel at index 0 while the
+  // smart-account file records a kernel at index N — silently broken.
   const createAccount = opts._createAccountClient ?? createEcdsaAccountClient;
+  const index = opts.index ?? 0n;
   const accountClient = await createAccount({
     type: "ecdsa",
     signer: ownerAccount,
@@ -323,6 +375,7 @@ export async function issueSessionKey(
     bundlerTransport: http(opts.bundlerUrl),
     entrypointVersion: "0.7" satisfies EntryPointVersion,
     kernelVersion,
+    index,
   // biome-ignore lint/suspicious/noExplicitAny: deep generic narrowing.
   } as any);
 
@@ -394,7 +447,8 @@ export async function issueSessionKey(
     alias: opts.alias,
     sessionKeyAddress: sessionAccount.address,
     kernelWallet: accountClient.account.address,
-    chainId: opts.chain.id,
+    chain: file.chain,
+    chainId: file.chainId,
     validUntil,
     ttlHours,
     sessionKeyPath: path,

@@ -84,6 +84,9 @@ test("issueSmartAccount — derives kernel address via SDK + persists chain + ch
     assert.equal(r.created, true);
     assert.equal(r.address, KERNEL);
     assert.equal(r.chainId, 8453);
+    assert.equal(r.chain, "base");
+    assert.equal(r.kernelVersion, "0.3.3");
+    assert.equal(r.index, "0");
 
     const stored = JSON.parse(readFileSync(r.smartAccountPath, "utf8"));
     // Both fields stored, but chainId is the consumer-stable source-of-truth
@@ -237,6 +240,78 @@ test("issueSessionKey — second call is a no-op (alias-keyed)", async () => {
     assert.equal(r2.created, false);
     assert.equal(r2.sessionKeyPath, r1.sessionKeyPath);
     assert.equal(r2.sessionKeyAddress, r1.sessionKeyAddress);
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
+});
+
+test("issueSmartAccount — drifted --chain on a second run throws (Codex P1.2: chain mismatch detection)", async () => {
+  const dir = tmpStoreDir();
+  try {
+    const KERNEL = "0xCafe000000000000000000000000000000000000" as `0x${string}`;
+    const stub = (async () => makeFakeAccountClient(KERNEL)) as any;
+    // First run pins the file to base mainnet (chainId 8453).
+    await issueSmartAccount({
+      alias: "bravo",
+      ownerKeystore,
+      ownerPassword: TEST_OWNER_PWD,
+      chain: base,
+      chainLabel: "base",
+      rpc: "rpc",
+      bundlerUrl: "bundler",
+      storeDir: dir,
+      _createAccountClient: stub,
+    });
+    const { baseSepolia } = await import("viem/chains");
+    // Second run with a different chain must refuse, not silently
+    // return base while reporting base-sepolia.
+    await assert.rejects(
+      () =>
+        issueSmartAccount({
+          alias: "bravo",
+          ownerKeystore,
+          ownerPassword: TEST_OWNER_PWD,
+          chain: baseSepolia,
+          chainLabel: "base-sepolia",
+          rpc: "rpc",
+          bundlerUrl: "bundler",
+          storeDir: dir,
+          _createAccountClient: stub,
+        }),
+      /chainId=8453.*requested chainId=84532|chainId=84532/,
+    );
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
+});
+
+test("issueSessionKey — propagates --index to the kernel-account derivation (Codex P1.1)", async () => {
+  // Without index plumbing, --index N>0 silently produces a session-key
+  // bound to a kernel at index 0 while the smart-account file recorded a
+  // kernel at index N. Different kernel addresses, undetected drift.
+  const dir = tmpStoreDir();
+  try {
+    let receivedIndex: bigint | undefined;
+    const fakeCreateAccount = (async (params: { index?: bigint }) => {
+      receivedIndex = params.index;
+      return makeFakeAccountClient("0xCafe000000000000000000000000000000000000" as `0x${string}`);
+    }) as any;
+    await issueSessionKey({
+      alias: "indexed",
+      ownerKeystore,
+      ownerPassword: TEST_OWNER_PWD,
+      chain: base,
+      chainLabel: "base",
+      rpc: "rpc",
+      bundlerUrl: "bundler",
+      index: 7n,
+      storeDir: dir,
+      _createAccountClient: fakeCreateAccount,
+      _createSessionKey: (async () => ({
+        serializedAccounts: [{ chainId: 8453, serializedAccount: "BLOB" }],
+      })) as any,
+    });
+    assert.equal(receivedIndex, 7n, "issueSessionKey must thread index into createEcdsaAccountClient");
   } finally {
     rmSync(dir, { recursive: true });
   }

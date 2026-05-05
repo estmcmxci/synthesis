@@ -143,17 +143,23 @@ export async function agentIssue(options: AgentIssueCliOptions): Promise<IssueRe
 
   // Step 2: smart-account
   if (!isJson) startSpinner(`Deriving smart-account for ${options.alias} on ${chainLabel}...`);
-  const sa = await issueSmartAccount({
-    alias: options.alias,
-    ownerKeystore,
-    ownerPassword: password!,
-    chain,
-    chainLabel,
-    rpc,
-    bundlerUrl,
-    kernelVersion,
-    index,
-  });
+  let sa;
+  try {
+    sa = await issueSmartAccount({
+      alias: options.alias,
+      ownerKeystore,
+      ownerPassword: password!,
+      chain,
+      chainLabel,
+      rpc,
+      bundlerUrl,
+      kernelVersion,
+      index,
+    });
+  } catch (err) {
+    stopSpinner();
+    failInput(isJson, (err as Error).message);
+  }
   stopSpinner();
   if (!isJson) {
     console.log(
@@ -161,20 +167,30 @@ export async function agentIssue(options: AgentIssueCliOptions): Promise<IssueRe
     );
   }
 
-  // Step 3: session-key
+  // Step 3: session-key. Thread the SAME `index` and `kernelVersion`
+  // that the smart-account step used (sourced from disk when the
+  // smart-account file already existed) so the session key is bound to
+  // the same kernel address.
   if (!isJson) startSpinner(`Issuing session key for ${options.alias}...`);
-  const sk = await issueSessionKey({
-    alias: options.alias,
-    ownerKeystore,
-    ownerPassword: password!,
-    chain,
-    chainLabel,
-    rpc,
-    bundlerUrl,
-    kernelVersion,
-    ttlHours,
-    gasCapWei,
-  });
+  let sk;
+  try {
+    sk = await issueSessionKey({
+      alias: options.alias,
+      ownerKeystore,
+      ownerPassword: password!,
+      chain,
+      chainLabel,
+      rpc,
+      bundlerUrl,
+      kernelVersion: sa!.kernelVersion,
+      index: BigInt(sa!.index),
+      ttlHours,
+      gasCapWei,
+    });
+  } catch (err) {
+    stopSpinner();
+    failInput(isJson, (err as Error).message);
+  }
   stopSpinner();
   if (!isJson) {
     console.log(
@@ -182,18 +198,23 @@ export async function agentIssue(options: AgentIssueCliOptions): Promise<IssueRe
     );
   }
 
+  // Source `chain`, `chainId`, and `kernelVersion` from the persisted
+  // smart-account file rather than from the CLI flags. When a file
+  // already exists, the flags may not match what's on disk; the on-disk
+  // values are authoritative because that's what the kernel address was
+  // actually derived under.
   const result: IssueResult = {
     alias: options.alias,
-    kernelWallet: sa.address,
-    runtimePubkey: sk.sessionKeyAddress,
-    kernelVersion: kernelVersion ?? "0.3.3",
-    chain: chainLabel,
-    chainId: chain.id,
+    kernelWallet: sa!.address,
+    runtimePubkey: sk!.sessionKeyAddress,
+    kernelVersion: sa!.kernelVersion,
+    chain: sa!.chain,
+    chainId: sa!.chainId,
     keystorePath: ks.keystorePath,
-    smartAccountPath: sa.smartAccountPath,
-    sessionKeyPath: sk.sessionKeyPath,
-    ttlHours: sk.ttlHours,
-    validUntil: new Date(sk.validUntil * 1000).toISOString(),
+    smartAccountPath: sa!.smartAccountPath,
+    sessionKeyPath: sk!.sessionKeyPath,
+    ttlHours: sk!.ttlHours,
+    validUntil: new Date(sk!.validUntil * 1000).toISOString(),
   };
 
   if (isJson) {
