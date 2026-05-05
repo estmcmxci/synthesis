@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://emilemarcelagustin.eth.limo/schemas/delegation-policy-schema-v1.json",
+  "title": "Agent delegation policy (v1)",
+  "description": "JSON Schema 2020-12 for the delegation policy document referenced by ENS text records `delegation` (URI) and `policy-hash` (keccak256 of canonical bytes) on emilemarcelagustin.eth. Declares the authorized delegators, scope of session-key authority, binding to the active session key, and revocation procedure. Versioning lives in $id; key names never carry version suffixes.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "$id",
+    "schema-uri",
+    "agent",
+    "version",
+    "issued-at",
+    "delegators",
+    "delegation-policy",
+    "active-session-key",
+    "revocation"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "const": "https://json-schema.org/draft/2020-12/schema"
+    },
+    "$id": {
+      "type": "string",
+      "format": "uri",
+      "description": "Canonical HTTPS URL of this policy instance. MUST end in .../policies/delegation-policy-vN.json. Bump N on every policy change."
+    },
+    "schema-uri": {
+      "type": "string",
+      "pattern": "^(ipfs://|cbor:|https://).+",
+      "description": "URI of the schema document validating this instance. SHOULD be ipfs:// for content-addressed integrity."
+    },
+    "agent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ens-name", "agent-id", "kernel-wallet", "chain", "chain-id"],
+      "properties": {
+        "ens-name": { "type": "string", "pattern": "^[a-z0-9-]+\\.eth$" },
+        "agent-id": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "ERC-8004 Identity Registry token id on the chain identified by chain-id."
+        },
+        "kernel-wallet": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{40}$",
+          "description": "Smart-account kernel that the session key acts on behalf of. Stable across rotations."
+        },
+        "chain": { "type": "string", "enum": ["base-mainnet", "ethereum-mainnet"] },
+        "chain-id": { "type": "integer", "enum": [1, 8453] }
+      }
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^v[0-9]+(\\.[0-9]+){0,2}$",
+      "description": "Human-readable version (v1, v1.1, v2). MUST match the suffix in $id."
+    },
+    "issued-at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "RFC 3339 timestamp when this policy version was authored."
+    },
+    "delegators": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "address", "role"],
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 64,
+            "description": "Human-readable identifier (e.g. 'owner-eoa', 'estmcmxci.eth')."
+          },
+          "address": {
+            "type": "string",
+            "pattern": "^0x[0-9a-fA-F]{40}$"
+          },
+          "ens": {
+            "type": ["string", "null"],
+            "description": "ENS name that resolves to address, if any."
+          },
+          "role": {
+            "type": "string",
+            "enum": ["primary", "co-authority"],
+            "description": "primary = on-chain owner of the ENS name; co-authority = additional authorized signer per this policy."
+          }
+        }
+      }
+    },
+    "delegation-policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["threshold", "scope", "ttl-hours", "permitted-message-classes", "prohibited"],
+      "properties": {
+        "threshold": {
+          "type": "string",
+          "pattern": "^[0-9]+-of-[0-9]+$",
+          "description": "Signature threshold over the delegators array. e.g. '1-of-2'."
+        },
+        "scope": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": ["eip191-sign", "eip712-sign"]
+          },
+          "description": "Cryptographic actions the active session key is authorized to perform."
+        },
+        "ttl-hours": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 8760,
+          "description": "Maximum lifetime (in hours) of any session key issued under this policy."
+        },
+        "permitted-message-classes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" },
+          "description": "Semantic classes of messages the session key may sign. Free-form strings; verifiers SHOULD reject signatures over messages outside these classes."
+        },
+        "prohibited": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Explicitly forbidden actions. Verifiers MUST reject any signed payload that performs these. Common entries: 'userop-broadcast', 'value-transfer', 'contract-write'."
+        }
+      }
+    },
+    "active-session-key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["address", "issued-at", "ttl-hours", "kernel-wallet"],
+      "properties": {
+        "address": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{40}$",
+          "description": "Currently authorized session signer. MUST equal the runtime-pubkey ENS text record while this policy is in force."
+        },
+        "issued-at": { "type": "string", "format": "date-time" },
+        "ttl-hours": { "type": "integer", "minimum": 1 },
+        "kernel-wallet": {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{40}$",
+          "description": "MUST equal agent.kernel-wallet."
+        }
+      }
+    },
+    "revocation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mechanism", "procedure", "verification"],
+      "properties": {
+        "mechanism": {
+          "type": "string",
+          "const": "version-bump-and-rotate",
+          "description": "v1 supports only this mechanism. Future versions MAY add reputation-list or on-chain registry hooks."
+        },
+        "procedure": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" },
+          "description": "Ordered prose steps the owner follows to revoke + rotate."
+        },
+        "verification": {
+          "type": "string",
+          "description": "How a third party verifies a signature against the live policy. e.g. 'Fetch ipfs://<CID> via the `delegation` ENS record; assert keccak256 of canonical bytes equals `policy-hash`; confirm signer matches `runtime-pubkey`.'"
+        }
+      }
+    }
+  }
+}

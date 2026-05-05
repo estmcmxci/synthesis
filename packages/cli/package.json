@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "dev": "tsx index.ts",
     "start": "node dist/index.js",
+    "test": "tsx --test commands/*.test.ts",
     "lint": "npx @biomejs/biome lint --write .",
     "format": "npx @biomejs/biome format --write ."
   },

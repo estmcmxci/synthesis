@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://emilemarcelagustin.eth.limo/schemas/agent-schema-v1.json",
+  "title": "ENS-bound agent identity (v1)",
+  "description": "JSON Schema 2020-12 doc referenced by the ENSIP-64 `schema` text record on emilemarcelagustin.eth. Defines the kebab-case text-record keys that describe the agent's runtime, kernel, and (later) policy/delegation surface. Property names match the ENS text-record keys on the same name. Versioning lives in $id; the keys themselves never carry version suffixes.",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "class": {
+      "type": "string",
+      "const": "Agent",
+      "description": "ENSIP-64 reserved global. Pascal-case classification of the named entity."
+    },
+    "schema": {
+      "type": "string",
+      "pattern": "^(ipfs://|cbor:|https://).+",
+      "description": "ENSIP-64 reserved global. URI of this schema document. MUST start with ipfs://, cbor:, or https://."
+    },
+    "runtime-pubkey": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{40}$",
+      "description": "EVM 0x address of the active session signer. Rotates when the session key rotates; rotation is reflected by updating this record (and bumping $id if semantics change)."
+    },
+    "runtime-status": {
+      "type": "string",
+      "enum": ["active", "paused", "revoked"],
+      "description": "Lifecycle of runtime-pubkey. `active` = currently signing; `paused` = signer valid but not authorized; `revoked` = signer rotated, this key no longer used (read for audit only)."
+    },
+    "kernel-wallet": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{40}$",
+      "description": "EVM 0x address of the Namera smart-account kernel that the session signer acts on behalf of. Stable across session-key rotations."
+    },
+    "policy-hash": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{64}$",
+      "description": "keccak256 hex of the canonical policy document bytes. Deterministic — same input bytes always produce the same hash. Bind a deployed runtime to a specific policy."
+    },
+    "policy-version": {
+      "type": "string",
+      "pattern": "^v[0-9]+(\\.[0-9]+){0,2}$",
+      "description": "Human-readable version of the policy document referenced by policy-hash. e.g. `v1`, `v1.2`."
+    },
+    "delegation": {
+      "type": "string",
+      "pattern": "^(ipfs://|https://).+",
+      "description": "URI of the delegation document binding the owner EOA to the kernel-wallet and authorizing the runtime-pubkey within the constraints of policy-hash. Pin to IPFS; mirror at HTTPS for readability."
+    }
+  }
+}

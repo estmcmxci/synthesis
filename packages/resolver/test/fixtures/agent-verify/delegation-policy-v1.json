@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://emilemarcelagustin.eth.limo/policies/delegation-policy-v1.json",
+  "schema-uri": "https://emilemarcelagustin.eth.limo/schemas/delegation-policy-schema-v1.json",
+  "agent": {
+    "ens-name": "emilemarcelagustin.eth",
+    "agent-id": 24994,
+    "kernel-wallet": "0xEc0d3C782C6087235Ab16d8c4d4188d10DFD796A",
+    "chain": "base-mainnet",
+    "chain-id": 8453
+  },
+  "version": "v1",
+  "issued-at": "2026-05-04T22:48:00Z",
+  "delegators": [
+    {
+      "label": "owner-eoa",
+      "address": "0xeb0ABB367540f90B57b3d5719fd2b9c740a15022",
+      "ens": null,
+      "role": "primary"
+    },
+    {
+      "label": "estmcmxci.eth",
+      "address": "0x703ae03fB120eC91e9Ed6d08Ce8044E498CC789B",
+      "ens": "estmcmxci.eth",
+      "role": "co-authority"
+    }
+  ],
+  "delegation-policy": {
+    "threshold": "1-of-2",
+    "scope": ["eip191-sign", "eip712-sign"],
+    "ttl-hours": 168,
+    "permitted-message-classes": [
+      "identity-attestation",
+      "agent-action-receipt",
+      "ensip-25-proof",
+      "ensip-26-endpoint-proof"
+    ],
+    "prohibited": [
+      "userop-broadcast",
+      "value-transfer",
+      "contract-write"
+    ]
+  },
+  "active-session-key": {
+    "address": "0x8973B6897554017d208DBeE2Ef5Fb8Fb046A6aEB",
+    "issued-at": "2026-05-04T22:00:00Z",
+    "ttl-hours": 168,
+    "kernel-wallet": "0xEc0d3C782C6087235Ab16d8c4d4188d10DFD796A"
+  },
+  "revocation": {
+    "mechanism": "version-bump-and-rotate",
+    "procedure": [
+      "Owner generates a new session key locally via the Namera CLI (issue-session-key), keystore-encrypted on the operator host. The owner key never leaves the operator host.",
+      "Owner authors delegation-policy-vN.json with bumped version, new active-session-key.address, and refreshed issued-at timestamp.",
+      "Owner pins the new policy to IPFS (Pinata directory pin under spec/ipfs) and computes its keccak256 hash over the pinned bytes.",
+      "Owner publishes three ENS text records on emilemarcelagustin.eth in a single batch: delegation = ipfs://<new-CID>/policies/delegation-policy-vN.json, policy-hash = 0x<keccak256>, policy-version = vN.",
+      "Owner rotates runtime-pubkey on ENS to the new session-key address; the runtime daemon's NAMERA_SESSION_KEY_BLOB and NAMERA_SESSION_KEY_PASSWORD secrets are updated and the daemon restarted.",
+      "The previous session key is now revoked: any signature it produces no longer matches runtime-pubkey on ENS and MUST be rejected by verifiers."
+    ],
+    "verification": "Fetch ipfs://<CID>/policies/delegation-policy-vN.json via the `delegation` ENS text record on emilemarcelagustin.eth. Compute keccak256 of the canonical UTF-8 bytes of the fetched document and assert equality with the `policy-hash` ENS text record. Verify the signer of any incoming attestation matches the `runtime-pubkey` ENS text record AND the `active-session-key.address` field in the fetched policy. Reject any signature whose payload class is not listed in `delegation-policy.permitted-message-classes`, or that performs any action listed in `delegation-policy.prohibited`."
+  }
+}
