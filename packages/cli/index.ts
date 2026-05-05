@@ -29,6 +29,7 @@ import {
 	linkAgent,
 	agentInfo,
 	agentVerify,
+	agentPin,
 	personhoodCheck,
 	personhoodRegister,
 	trust as trustCmd,
@@ -851,6 +852,70 @@ agent.command("verify", {
 			ipfsGateway: options.ipfsGateway,
 			rpc: options.rpc,
 			timeout: options.timeout,
+			format: options.format,
+			explain: options.explain,
+		});
+	},
+});
+
+agent.command("pin", {
+	description:
+		"Pin a directory of agent-identity files to Pinata. Optionally compute the policy-hash via JCS + keccak256 — same path the verifier uses, so pin/verify is a closed round-trip. Reads $PINATA_JWT.",
+	args: z.object({
+		dir: z.string().describe("Local directory to pin (every regular file is uploaded)"),
+	}),
+	options: z.object({
+		policy: z
+			.string()
+			.optional()
+			.describe(
+				"After pin, compute keccak256(JCS(file)) as `policyHash`. Value is a relpath inside <dir>, or `-` to read policy bytes from stdin.",
+			),
+		metadataName: z
+			.string()
+			.optional()
+			.describe("Pinata pinataMetadata.name. Default: basename(dir). Stable, not timestamped — Pinata pins are content-addressed and re-pinning is idempotent."),
+		gateway: z
+			.string()
+			.optional()
+			.describe("Gateway used for the post-pin verification probe (default: gateway.pinata.cloud)"),
+		noVerify: z
+			.boolean()
+			.optional()
+			.describe("Skip the post-pin gateway-resolution probe"),
+		format: z
+			.enum(["json"])
+			.optional()
+			.describe("Emit a structured PinResult on stdout instead of the human layout"),
+		explain: z
+			.boolean()
+			.optional()
+			.describe("Print all per-file IPFS URIs"),
+	}),
+	alias: { policy: "p", format: "f" },
+	examples: [
+		{
+			args: { dir: "./spec/ipfs" },
+			description: "Pin a spec directory",
+		},
+		{
+			args: { dir: "./spec/ipfs" },
+			options: { policy: "policies/delegation-policy-v1.json" },
+			description: "Pin and compute policy-hash",
+		},
+		{
+			args: { dir: "./spec/ipfs" },
+			options: { policy: "-", format: "json" },
+			description: "Pipe policy bytes via stdin and emit JSON for jq",
+		},
+	],
+	async run({ args, options }) {
+		return await agentPin({
+			dir: args.dir,
+			policy: options.policy,
+			metadataName: options.metadataName,
+			gateway: options.gateway,
+			noVerify: options.noVerify,
 			format: options.format,
 			explain: options.explain,
 		});

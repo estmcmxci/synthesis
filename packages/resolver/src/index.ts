@@ -70,6 +70,15 @@ export {
 export { canonicalize, canonicalizeBytes } from "./utils/jcs.js";
 
 export {
+  pinDirectory,
+  verifyPinResolves,
+  type PinDirectoryFile,
+  type PinDirectoryOptions,
+  type PinDirectoryResult,
+  type VerifyPinOptions,
+} from "./utils/pinata.js";
+
+export {
   createEnsClient,
   normalizeName,
   getTextRecord,
@@ -81,6 +90,7 @@ export {
 export {
   extractCid,
   fetchFromIpfs,
+  fetchIpfsRaw,
   fetchJsonFromIpfs,
   cidToUri,
   cidToGatewayUrl,
