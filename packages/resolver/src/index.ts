@@ -156,3 +156,17 @@ export {
   type SmartAccountFile,
   type SessionKeyFile,
 } from "./wallets/namera-issue.js";
+
+export {
+  bumpPolicy,
+  nextMajorVersion,
+  type PolicyDoc,
+  type BumpPolicyArgs,
+} from "./wallets/policy-bump.js";
+
+export {
+  rotateAgent,
+  readRotationArtifact,
+  type RotateAgentArgs,
+  type RotateResult,
+} from "./wallets/rotate.js";

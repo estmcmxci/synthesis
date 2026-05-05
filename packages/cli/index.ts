@@ -32,6 +32,7 @@ import {
 	agentPin,
 	agentPublish,
 	agentIssue,
+	agentRotate,
 	personhoodCheck,
 	personhoodRegister,
 	trust as trustCmd,
@@ -1100,6 +1101,74 @@ agent.command("issue", {
 			ttlHours: options.ttlHours,
 			gasCapWei: options.gasCapWei,
 			index: options.index,
+			format: options.format,
+		});
+	},
+});
+
+agent.command("rotate", {
+	description:
+		"Rotate the active session key + bump the policy version on an ENS-bound agent. Plan-only by default; --broadcast sends the multicall (4 records: runtime-pubkey, delegation, policy-hash, policy-version). Reads $SYNTHESIS_KEYSTORE_PASSWORD + $PINATA_JWT (always); $ENS_PRIVATE_KEY or --ledger for --broadcast. Does NOT call onchain revokeSessionKey — TRL semantic is sufficient.",
+	args: z.object({
+		alias: z.string().describe("Existing alias from `agent issue` (filesystem keystore lookup)"),
+	}),
+	options: z.object({
+		ens: z
+			.string()
+			.describe("ENS name to rotate (e.g. emilemarcelagustin.eth)"),
+		policyVersion: z
+			.string()
+			.optional()
+			.describe("New policy version (default: auto-bump from on-chain policy-version)"),
+		ttlHours: z
+			.string()
+			.regex(/^\d+$/, "must be a positive integer (hours)")
+			.optional()
+			.describe("New session-key TTL in hours (default: 168)"),
+		gasCapWei: z
+			.string()
+			.regex(/^\d+$/, "must be a positive integer (wei)")
+			.optional()
+			.describe("New session-key gas cap in wei (default: 1000000000000000)"),
+		chain: z
+			.enum(["base", "base-sepolia"])
+			.optional()
+			.describe("Target chain for the smart-account (default: base)"),
+		rpc: z.string().optional().describe("Base RPC URL (must preserve eth_call revert data)"),
+		bundler: z.string().optional().describe("ERC-4337 bundler URL"),
+		ipfsGateway: z.array(z.string()).optional().describe("Override IPFS gateway race (repeatable)"),
+		broadcast: z.boolean().optional().describe("Send the multicall transaction. Default off."),
+		ledger: z.boolean().optional().describe("Sign via Ledger hardware wallet"),
+		accountIndex: z.string().optional().describe("Ledger account index (default: 0)"),
+		format: z.enum(["json"]).optional().describe("Emit a structured RotateResult on stdout"),
+	}),
+	alias: { broadcast: "B", format: "f" },
+	examples: [
+		{
+			args: { alias: "alpha" },
+			options: { ens: "emilemarcelagustin.eth" },
+			description: "Plan-only rotation: prints version bump + 4-record diff",
+		},
+		{
+			args: { alias: "alpha" },
+			options: { ens: "emilemarcelagustin.eth", broadcast: true },
+			description: "Broadcast the rotation",
+		},
+	],
+	async run({ args, options }) {
+		return await agentRotate({
+			alias: args.alias,
+			ens: options.ens,
+			policyVersion: options.policyVersion,
+			ttlHours: options.ttlHours,
+			gasCapWei: options.gasCapWei,
+			chain: options.chain,
+			rpc: options.rpc,
+			bundler: options.bundler,
+			ipfsGateway: options.ipfsGateway,
+			broadcast: options.broadcast,
+			ledger: options.ledger,
+			accountIndex: options.accountIndex,
 			format: options.format,
 		});
 	},
