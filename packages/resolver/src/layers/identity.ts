@@ -123,10 +123,19 @@ export async function resolveIdentity(
       const value = await readText(ensName, key);
 
       if (value && value.length > 0) {
-        // Found an ENSIP-25 record — verify on-chain
+        // Found an ENSIP-25 record — verify on-chain. Both `tokenURI` and
+        // `owner` must read successfully before we elevate to verified.
+        // verifyOnChain returns null fields for burned/nonexistent token
+        // IDs OR for transient RPC failures; treating either as a pass
+        // would let a stale `agent-ids` index falsely elevate trust. If
+        // this entry doesn't verify cleanly, `continue` so the scan can
+        // still find a valid (registry, id) pair further down the index.
         const onChain = options.testHooks?.verifyOnChain
           ? await options.testHooks.verifyOnChain(registry, agentId)
           : await verifyOnChain(registry, agentId);
+        if (onChain.tokenURI === null || onChain.owner === null) {
+          continue;
+        }
         const erc7930 = encodeErc7930Address(registry.chainId, registry.address);
 
         return {

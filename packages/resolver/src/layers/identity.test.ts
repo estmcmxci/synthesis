@@ -106,6 +106,47 @@ test("no agent-ids record and no knownAgentIds — returns verified:false cleanl
   assert.equal(result.registryChain, null);
 });
 
+test("ENSIP-25 record present but on-chain verifyOnChain returns null — does not falsely verify (Codex P1)", async () => {
+  // Defends against a stale/burned token id where the link record exists on
+  // ENS but the ERC-8004 contract no longer recognizes the agent (or the RPC
+  // is transiently failing). Without this gate, agent-ids auto-discovery
+  // could elevate trust based purely on the ENS text record.
+  const ensip25Key = buildEnsip25Key(BASE.chainId, BASE.address, "24994");
+  const result = await resolveIdentity("emilemarcelagustin.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    testHooks: {
+      readTextRecord: records({
+        "agent-ids": '["24994"]',
+        [ensip25Key]: "1",
+      }),
+      verifyOnChain: async () => ({ tokenURI: null, owner: null }),
+    },
+  });
+  assert.equal(result.verified, false);
+  assert.equal(result.agentId, null);
+});
+
+test("agent-ids index with a stale id followed by a fresh one — scan continues past the stale entry", async () => {
+  const staleKey = buildEnsip25Key(BASE.chainId, BASE.address, "999");
+  const freshKey = buildEnsip25Key(BASE.chainId, BASE.address, "24994");
+  const result = await resolveIdentity("emilemarcelagustin.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    testHooks: {
+      readTextRecord: records({
+        "agent-ids": '["999", "24994"]',
+        [staleKey]: "1",
+        [freshKey]: "1",
+      }),
+      verifyOnChain: async (_reg, id) =>
+        id === "24994"
+          ? { tokenURI: "data:application/json;base64,e30=", owner: "0xeb0A" }
+          : { tokenURI: null, owner: null },
+    },
+  });
+  assert.equal(result.verified, true);
+  assert.equal(result.agentId, "24994");
+});
+
 test("agent-ids has an ID but ENSIP-25 record is missing — does not falsely verify", async () => {
   // Defends against a stale agent-ids index that lists IDs whose ENSIP-25
   // text records have been deleted or never written.
