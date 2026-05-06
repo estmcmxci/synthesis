@@ -38,3 +38,15 @@ next-env.d.ts
 
 # Environment (catch-all)
 .env*.local
+
+# Private / drafting docs (do not commit)
+.private/
+
+# Build artifacts
+*.tsbuildinfo
+
+# MCP / Playwright runtime
+.playwright-mcp/
+
+# Claude Code scheduled-tasks lock (runtime state)
+.claude/scheduled_tasks.lock
