@@ -17,11 +17,17 @@ export function ChatPanel({ endpoint, agentName }: ChatPanelProps) {
 }
 
 function ConnectedChat({ endpoint, agentName }: { endpoint: string; agentName: string }) {
+  void endpoint; // The endpoint URL is read server-side; the browser posts to a
+  // same-origin proxy at /api/chat-proxy/[name] to avoid Pinata's CORS-preflight
+  // edge handler (which strips Access-Control-Allow-Origin from OPTIONS responses).
   const [input, setInput] = useState("");
 
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: endpoint }),
-    [endpoint],
+    () =>
+      new DefaultChatTransport({
+        api: `/api/chat-proxy/${encodeURIComponent(agentName)}`,
+      }),
+    [agentName],
   );
 
   const { messages, sendMessage, status, error } = useChat({ transport });
