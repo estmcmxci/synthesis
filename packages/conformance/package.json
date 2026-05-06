@@ -1,0 +1,39 @@
+{
+  "name": "@synthesis/conformance",
+  "version": "0.1.0",
+  "description": "Conformance test suite for ENS-bound runtime agents — runtime + verifier audiences",
+  "type": "module",
+  "main": "./dist/src/index.js",
+  "types": "./dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/src/index.js",
+      "types": "./dist/src/index.d.ts"
+    }
+  },
+  "bin": {
+    "conformance": "./dist/bin/conformance.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts bin/conformance.ts --format esm --dts --outDir dist",
+    "typecheck": "tsc --noEmit",
+    "dev": "tsx src/index.ts",
+    "lint": "npx @biomejs/biome lint --write .",
+    "format": "npx @biomejs/biome format --write .",
+    "test": "tsx --test src/runtime/*.test.ts src/verifier/*.test.ts",
+    "test:runtime": "CONFORMANCE_LIVE=1 tsx --test src/runtime/*.test.ts"
+  },
+  "dependencies": {
+    "@synthesis/resolver": "workspace:*",
+    "viem": "^2.33.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.15",
+    "tsup": "^8.5.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.8.3"
+  }
+}
