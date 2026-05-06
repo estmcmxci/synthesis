@@ -140,6 +140,11 @@ export interface AgentVerifyOptions {
      * `options.fetch`, and `cbor:` is rejected unconditionally. */
     fetchIpfs?: (uri: string) => Promise<{ bytes: Uint8Array; gateway: string }>;
     getOwner?: (ensName: string) => Promise<Address | null>;
+    /** Inject responses for the agent-endpoint /health and /sign probes.
+     * When provided, the SSRF guard is bypassed for these URLs — necessary
+     * because conformance fixtures bind to 127.0.0.1, which the guard
+     * (correctly) rejects in production. Leave undefined in production code. */
+    fetchEndpoint?: (url: string, init?: RequestInit) => Promise<Response>;
   };
 }
 
@@ -489,16 +494,20 @@ export async function verifyAgentIdentity(
   // -------------------------------------------------------------------------
   const healthUrl = records["agent-endpoint[web]"].replace(/\/$/, "") + "/health";
   try {
-    // SSRF guard: agent-endpoint[web] is an owner-controlled URL. Reject
-    // any URL whose hostname resolves to a non-public IP before fetching.
-    await assertPublicHttpUrl(healthUrl);
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
     let healthRes: Response;
-    try {
-      healthRes = await fetchImpl(healthUrl, { signal: controller.signal });
-    } finally {
-      clearTimeout(timer);
+    if (options.testHooks?.fetchEndpoint) {
+      healthRes = await options.testHooks.fetchEndpoint(healthUrl);
+    } else {
+      // SSRF guard: agent-endpoint[web] is an owner-controlled URL. Reject
+      // any URL whose hostname resolves to a non-public IP before fetching.
+      await assertPublicHttpUrl(healthUrl);
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        healthRes = await fetchImpl(healthUrl, { signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
     }
     result.layers.liveness.responseStatus = healthRes.status;
     if (!healthRes.ok) {
@@ -536,25 +545,33 @@ export async function verifyAgentIdentity(
     result.layers.signature.challenge = challenge;
     const signUrl = records["agent-endpoint[web]"].replace(/\/$/, "") + "/sign";
     try {
-      // SSRF guard — same reasoning as the liveness probe above.
-      await assertPublicHttpUrl(signUrl);
       // Sign protocol: the daemon's /sign endpoint accepts `{message: <string>}`
       // and EIP-191 signs the literal string. Verifier sends the JCS-canonical
       // envelope as the message string so the byte-exact value is reproducible
       // on both sides. Daemon contract: see emilemarcelagustin.eth runtime.
       const message = new TextDecoder().decode(canonicalizeBytes(challenge as never));
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
       let signRes: Response;
-      try {
-        signRes = await fetchImpl(signUrl, {
+      if (options.testHooks?.fetchEndpoint) {
+        signRes = await options.testHooks.fetchEndpoint(signUrl, {
           method: "POST",
           headers: { "content-type": "application/json" },
           body: JSON.stringify({ message }),
-          signal: controller.signal,
         });
-      } finally {
-        clearTimeout(timer);
+      } else {
+        // SSRF guard — same reasoning as the liveness probe above.
+        await assertPublicHttpUrl(signUrl);
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+          signRes = await fetchImpl(signUrl, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ message }),
+            signal: controller.signal,
+          });
+        } finally {
+          clearTimeout(timer);
+        }
       }
       if (!signRes.ok) {
         result.layers.signature.passed = false;
