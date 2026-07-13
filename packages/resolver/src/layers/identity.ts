@@ -441,13 +441,27 @@ export async function probeAdapterBinding(
   }
 }
 
+/**
+ * Default RPC per chain for registry/adapter reads when the target doesn't
+ * specify one. Without this, viem falls back to the chain's built-in public
+ * RPC (eth.merkle.io for mainnet), which rate-limits aggressively — its
+ * retry backoff can stall a resolve for minutes. Same endpoints the rest of
+ * the repo standardizes on.
+ */
+const DEFAULT_RPC_URLS: Record<number, string> = {
+  1: "https://eth.drpc.org",
+  8453: "https://mainnet.base.org",
+  11155111: "https://sepolia.drpc.org",
+};
+
 function createRegistryClient(registry: RegistryTarget): PublicClient {
   const chain = CHAIN_MAP[registry.chainId];
-  if (!chain && !registry.rpcUrl) {
+  const rpcUrl = registry.rpcUrl ?? DEFAULT_RPC_URLS[registry.chainId];
+  if (!chain && !rpcUrl) {
     throw new Error(`No chain config or rpcUrl for chain ${registry.chainId}`);
   }
   return createPublicClient({
     chain,
-    transport: http(registry.rpcUrl),
+    transport: http(rpcUrl),
   }) as PublicClient;
 }
