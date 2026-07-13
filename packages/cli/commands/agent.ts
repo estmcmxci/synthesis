@@ -22,6 +22,7 @@ import {
 	getAgentTokenURI,
 	getAgentOwner,
 	getAdapterBinding,
+	getBindingTokenHolder,
 	holdsWrappedName,
 	ADAPTER_8004_ABI,
 	ADAPTER_TOKEN_STANDARD,
@@ -557,9 +558,21 @@ export async function agentInfo(options: AgentInfoOptions) {
 		console.log();
 		console.log(`  ${colors.blue("ENSIP-25 key:")} ${colors.dim(ensip25Key)}`);
 
-		// Personhood check on the owner address
+		// Personhood check. For adapter-managed agents the registry owner is
+		// the adapter contract itself — the AgentBook binding lives on the
+		// human who holds the bound token (the wrapped name's holder), so
+		// follow the binding to them. Non-adapter agents keep the owner check.
+		let personhoodTarget = owner;
+		if (binding) {
+			const holder = await getBindingTokenHolder(
+				agentChain,
+				binding.tokenContract,
+				binding.tokenId,
+			);
+			if (holder) personhoodTarget = holder;
+		}
 		startSpinner("Checking personhood...");
-		const personhood = await resolvePersonhood(owner, {
+		const personhood = await resolvePersonhood(personhoodTarget, {
 			networks: ["base", "world"],
 		});
 		stopSpinner();

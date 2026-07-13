@@ -1516,6 +1516,39 @@ export async function getAdapterBinding(
 	}
 }
 
+/**
+ * Resolve the human controller behind an adapter binding: the holder of the
+ * bound token. NameWrapper exposes ownerOf(uint256(namehash)) for wrapped
+ * names; generic ERC-1155 contracts don't, so a failed read returns null and
+ * callers should fall back to the registry owner.
+ */
+export async function getBindingTokenHolder(
+	agentChain: AgentChainConfig,
+	tokenContract: Address,
+	tokenId: bigint,
+): Promise<Address | null> {
+	const client = createChainPublicClient(agentChain.chainId, agentChain.rpcUrl);
+	try {
+		const holder = (await client.readContract({
+			address: tokenContract,
+			abi: [
+				{
+					name: "ownerOf",
+					type: "function",
+					stateMutability: "view",
+					inputs: [{ name: "id", type: "uint256" }],
+					outputs: [{ type: "address" }],
+				},
+			] as const,
+			functionName: "ownerOf",
+			args: [tokenId],
+		})) as Address;
+		return holder === "0x0000000000000000000000000000000000000000" ? null : holder;
+	} catch {
+		return null;
+	}
+}
+
 // ============================================================================
 // ERC-8004 Identity Registry ABI & Helpers
 // ============================================================================
