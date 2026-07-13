@@ -10,6 +10,7 @@ import {
 	createPublicClient,
 	createWalletClient,
 	http,
+	parseGwei,
 	type Chain,
 	type PublicClient,
 	type WalletClient,
@@ -29,6 +30,22 @@ const CHAIN_MAP: Record<number, Chain> = {
 	10: optimism,
 	42161: arbitrum,
 };
+
+/**
+ * Public RPCs frequently suggest ~0 priority fees in low-gas regimes;
+ * builders skip zero-tip transactions and mempools eventually evict them,
+ * so writes silently vanish. Floor the tip viem uses for fee estimation.
+ * 0.05 gwei is negligible cost on every supported chain.
+ */
+function withPriorityFeeFloor(chain: Chain): Chain {
+	return {
+		...chain,
+		fees: {
+			...chain.fees,
+			defaultPriorityFee: parseGwei("0.05"),
+		},
+	};
+}
 
 /**
  * Per-chain RPC environment variable overrides
@@ -106,7 +123,7 @@ export async function createEnsWalletClient(
 	accountIndex = 0,
 ): Promise<WalletClient | null> {
 	const config = getNetworkConfig(network);
-	const chain = CHAIN_MAP[config.chainId] || sepolia;
+	const chain = withPriorityFeeFloor(CHAIN_MAP[config.chainId] || sepolia);
 	const rpcUrl = resolveRpcUrl(config.chainId, config.rpcUrl);
 
 	if (useLedger) {
@@ -141,10 +158,11 @@ export async function createChainWalletClient(
 	useLedger = false,
 	accountIndex = 0,
 ): Promise<WalletClient | null> {
-	const chain = CHAIN_MAP[chainId];
-	if (!chain) {
+	const baseChain = CHAIN_MAP[chainId];
+	if (!baseChain) {
 		throw new Error(`Unsupported chain ID: ${chainId}`);
 	}
+	const chain = withPriorityFeeFloor(baseChain);
 	const rpcUrl = resolveRpcUrl(chainId, defaultRpcUrl);
 
 	if (useLedger) {
