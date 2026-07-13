@@ -633,24 +633,24 @@ const agent = Cli.create("agent", {
 
 agent.command("register", {
 	description:
-		"Register on ERC-8004 IdentityRegistry and optionally link to ENS name via ENSIP-25",
+		"Register via the canonical Adapter8004 — binds the ERC-8004 agent to the ENS name's wrapped NameWrapper token (name must be wrapped; the signer must hold it). Optionally links via ENSIP-25.",
 	args: z.object({
 		name: z
 			.string()
-			.describe("ENS name to associate with the agent (e.g., emilemarcelagustin.eth)"),
+			.describe("ENS name to bind the agent to (e.g., emilemarcelagustin.eth) — must be wrapped"),
 	}),
 	options: z.object({
 		chain: z
 			.string()
 			.optional()
 			.describe(
-				"Chain for ERC-8004 registry (base, eth, op, arb, sep). Default: base",
+				"Must match the name's own network — Adapter8004 registration is chain-locked to where the wrapped name lives (mainnet, sepolia). Usually omit.",
 			),
 		nameChain: z
 			.string()
 			.optional()
 			.describe(
-				"Chain where the ENS name lives, if different from registry chain",
+				"Chain where the ENS name lives (default: mainnet). Registration happens on this chain.",
 			),
 		mcp: z
 			.string()
@@ -686,12 +686,12 @@ agent.command("register", {
 		{
 			args: { name: "emilemarcelagustin.eth" },
 			options: { link: true },
-			description: "Register agent and link to ENS name",
+			description: "Register agent bound to the wrapped name and link via ENSIP-25",
 		},
 		{
 			args: { name: "myagent.eth" },
-			options: { chain: "op", mcp: "https://mcp.example.com" },
-			description: "Register on Optimism with MCP endpoint",
+			options: { nameChain: "sepolia", mcp: "https://mcp.example.com" },
+			description: "Register a Sepolia test name with an MCP endpoint",
 		},
 	],
 	async run({ args, options }) {

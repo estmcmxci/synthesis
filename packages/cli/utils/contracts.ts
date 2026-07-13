@@ -1376,6 +1376,147 @@ export function calculateSubnameNode(
 }
 
 // ============================================================================
+// Adapter8004 (unruggable-labs) ABI & Helpers
+// ============================================================================
+
+/**
+ * TokenStandard enum values from IERCAgentBindings.sol. Only ERC1155 is used
+ * by ensemble today — the NameWrapper token is ERC-1155.
+ */
+export const ADAPTER_TOKEN_STANDARD = {
+	ERC721: 0,
+	ERC1155: 1,
+	ERC6909: 2,
+	ERC1155F: 3,
+	ERC6909F: 4,
+} as const;
+
+export const ADAPTER_TOKEN_STANDARD_NAMES = [
+	"ERC721",
+	"ERC1155",
+	"ERC6909",
+	"ERC1155F",
+	"ERC6909F",
+] as const;
+
+/**
+ * Adapter8004 surface used by ensemble. ABI derived from
+ * github.com/unruggable-labs/adapter (`src/Adapter8004.sol` +
+ * `src/interfaces/IERCAgentBindings.sol`); selectors verified present in the
+ * deployed implementation bytecode on mainnet/Base/Sepolia (2026-07-13).
+ *
+ * register() requires the caller to hold the bound token — for an ENS name,
+ * the wrapped NameWrapper ERC-1155 token with id = uint256(namehash(name)).
+ * The minted agent lives on the adapter's underlying `identityRegistry()`
+ * (the canonical ERC-8004 registry), owned by the adapter.
+ */
+export const ADAPTER_8004_ABI = [
+	{
+		name: "register",
+		type: "function",
+		stateMutability: "nonpayable",
+		inputs: [
+			{ name: "standard", type: "uint8" },
+			{ name: "tokenContract", type: "address" },
+			{ name: "tokenId", type: "uint256" },
+			{ name: "agentURI", type: "string" },
+		],
+		outputs: [{ name: "agentId", type: "uint256" }],
+	},
+	{
+		name: "bindingOf",
+		type: "function",
+		stateMutability: "view",
+		inputs: [{ name: "agentId", type: "uint256" }],
+		outputs: [
+			{
+				type: "tuple",
+				components: [
+					{ name: "standard", type: "uint8" },
+					{ name: "tokenContract", type: "address" },
+					{ name: "tokenId", type: "uint256" },
+				],
+			},
+		],
+	},
+	{
+		name: "identityRegistry",
+		type: "function",
+		stateMutability: "view",
+		inputs: [],
+		outputs: [{ type: "address" }],
+	},
+	{
+		name: "AgentBound",
+		type: "event",
+		inputs: [
+			{ name: "agentId", type: "uint256", indexed: true },
+			{ name: "standard", type: "uint8", indexed: true },
+			{ name: "tokenContract", type: "address", indexed: true },
+			{ name: "tokenId", type: "uint256", indexed: false },
+			{ name: "registeredBy", type: "address", indexed: false },
+		],
+	},
+] as const;
+
+const NAME_WRAPPER_BALANCE_ABI = [
+	{
+		name: "balanceOf",
+		type: "function",
+		stateMutability: "view",
+		inputs: [
+			{ name: "account", type: "address" },
+			{ name: "id", type: "uint256" },
+		],
+		outputs: [{ type: "uint256" }],
+	},
+] as const;
+
+/**
+ * Check whether `holder` holds the wrapped NameWrapper ERC-1155 token for
+ * `node` — the exact control check Adapter8004.register() enforces.
+ */
+export async function holdsWrappedName(
+	holder: Address,
+	node: `0x${string}`,
+	network?: string,
+): Promise<boolean> {
+	const config = getNetworkConfig(network);
+	const client = getPublicClient(network);
+	const balance = (await client.readContract({
+		address: config.nameWrapper,
+		abi: NAME_WRAPPER_BALANCE_ABI,
+		functionName: "balanceOf",
+		args: [holder, BigInt(node)],
+	})) as bigint;
+	return balance > 0n;
+}
+
+/**
+ * Read an agent's binding from the chain's Adapter8004.
+ * Returns null when the agent is not adapter-managed (bindingOf reverts
+ * with UnknownAgent) or the adapter can't be reached.
+ */
+export async function getAdapterBinding(
+	agentChain: AgentChainConfig,
+	agentId: string,
+): Promise<{ standard: number; tokenContract: Address; tokenId: bigint } | null> {
+	if (!agentChain.adapter8004) return null;
+	const client = createChainPublicClient(agentChain.chainId, agentChain.rpcUrl);
+	try {
+		const binding = (await client.readContract({
+			address: agentChain.adapter8004,
+			abi: ADAPTER_8004_ABI,
+			functionName: "bindingOf",
+			args: [BigInt(agentId)],
+		})) as { standard: number; tokenContract: Address; tokenId: bigint };
+		return binding;
+	} catch {
+		return null;
+	}
+}
+
+// ============================================================================
 // ERC-8004 Identity Registry ABI & Helpers
 // ============================================================================
 
