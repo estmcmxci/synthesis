@@ -42,11 +42,21 @@ const RPC_ENV_KEYS: Record<number, string> = {
 };
 
 /**
- * Resolve the RPC URL for a given chain ID and default URL
+ * Resolve the RPC URL for a given chain ID and default URL.
+ *
+ * Precedence: per-chain env override (ETH_RPC_URL_MAINNET etc.) > generic
+ * ETH_RPC_URL (mainnet only) > the chain's default. The generic var must
+ * NOT apply to other chains: it invariably points at a mainnet node, and
+ * letting it override e.g. Sepolia silently routes that chain's reads and
+ * writes to mainnet — preflight checks (wrapped status, ownership) then
+ * report another chain's state for the name being operated on.
  */
 function resolveRpcUrl(chainId: number, defaultUrl: string): string {
 	const envKey = RPC_ENV_KEYS[chainId];
-	return (envKey && process.env[envKey]) || process.env.ETH_RPC_URL || defaultUrl;
+	const perChain = envKey ? process.env[envKey] : undefined;
+	if (perChain) return perChain;
+	if (chainId === 1 && process.env.ETH_RPC_URL) return process.env.ETH_RPC_URL;
+	return defaultUrl;
 }
 
 /**
