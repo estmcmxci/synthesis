@@ -117,6 +117,30 @@ export function parseEnsip25Key(
   };
 }
 
+/**
+ * Well-known Adapter8004 deployments (unruggable-labs canonical proxies).
+ *
+ * The adapter is not an ENSIP-25 registry itself — agents registered through
+ * it are minted on the chain's canonical ERC-8004 registry (the adapter's
+ * `identityRegistry()`), so ENSIP-25 keys keep the registry address. The
+ * adapter is consulted at verification time via `bindingOf(agentId)` to
+ * prove the agent is bound to a specific NameWrapper token, i.e. to a
+ * specific ENS name. Keyed by chain ID.
+ *
+ * UUPS proxies governed by the unruggable multisig Safe
+ * (0x03302Df40186D9B85faEA4fbb6cC5da028B23149) — an accepted upgrade
+ * dependency; re-verify live implementations before relying on behavior
+ * not covered by tests.
+ */
+export const KNOWN_ADAPTERS: Record<number, `0x${string}`> = {
+  /** Ethereum mainnet */
+  1: "0xde152AfB7db5373F34876E1499fbD893A82dD336",
+  /** Base mainnet */
+  8453: "0x270d25D2c59A8bcA1B0f40ad95fF7806c0025c27",
+  /** Sepolia */
+  11155111: "0x7621630cB63a73a194f45A3E6801B8C6A7eC2f92",
+};
+
 /** Well-known registries */
 export const KNOWN_REGISTRIES = {
   /** ERC-8004 on Base mainnet */

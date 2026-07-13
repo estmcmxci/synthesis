@@ -19,6 +19,13 @@ export type NetworkConfig = {
 	rpcUrl: string;
 	explorerUrl: string;
 	identityRegistry8004?: `0x${string}`;
+	/**
+	 * Canonical Adapter8004 proxy (unruggable-labs). Gates ERC-8004
+	 * registration on holding the ENS name's wrapped NameWrapper token and
+	 * exposes bindingOf() for verifiers. UUPS proxy governed by the
+	 * unruggable multisig Safe (0x03302Df40186D9B85faEA4fbb6cC5da028B23149).
+	 */
+	adapter8004?: `0x${string}`;
 };
 
 /**
@@ -30,6 +37,8 @@ export type AgentChainConfig = {
 	rpcUrl: string;
 	explorerUrl: string;
 	identityRegistry8004: `0x${string}`;
+	/** Canonical Adapter8004 proxy on this chain, when deployed. */
+	adapter8004?: `0x${string}`;
 };
 
 export const ENS_DEPLOYMENTS: Record<string, NetworkConfig> = {
@@ -47,6 +56,7 @@ export const ENS_DEPLOYMENTS: Record<string, NetworkConfig> = {
 		rpcUrl: "https://eth.drpc.org",
 		explorerUrl: "https://etherscan.io",
 		identityRegistry8004: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+		adapter8004: "0xde152AfB7db5373F34876E1499fbD893A82dD336",
 	},
 	sepolia: {
 		chainId: 11155111,
@@ -62,6 +72,7 @@ export const ENS_DEPLOYMENTS: Record<string, NetworkConfig> = {
 		rpcUrl: "https://sepolia.drpc.org",
 		explorerUrl: "https://sepolia.etherscan.io",
 		identityRegistry8004: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+		adapter8004: "0x7621630cB63a73a194f45A3E6801B8C6A7eC2f92",
 	},
 };
 
@@ -74,6 +85,7 @@ export const AGENT_CHAIN_DEPLOYMENTS: Record<string, AgentChainConfig> = {
 		rpcUrl: "https://mainnet.base.org",
 		explorerUrl: "https://basescan.org",
 		identityRegistry8004: "0x8004A169FB4a3325136EB29fA0ceB6D2e539a432",
+		adapter8004: "0x270d25D2c59A8bcA1B0f40ad95fF7806c0025c27",
 	},
 	optimism: {
 		chainId: 10,
@@ -148,6 +160,7 @@ export function resolveAgentChain(chain?: string): AgentChainConfig {
 			rpcUrl: ensConfig.rpcUrl,
 			explorerUrl: ensConfig.explorerUrl,
 			identityRegistry8004: ensConfig.identityRegistry8004,
+			adapter8004: ensConfig.adapter8004,
 		};
 	}
 

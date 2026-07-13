@@ -10,6 +10,7 @@ import {
 	createPublicClient,
 	createWalletClient,
 	http,
+	parseGwei,
 	type Chain,
 	type PublicClient,
 	type WalletClient,
@@ -31,6 +32,22 @@ const CHAIN_MAP: Record<number, Chain> = {
 };
 
 /**
+ * Public RPCs frequently suggest ~0 priority fees in low-gas regimes;
+ * builders skip zero-tip transactions and mempools eventually evict them,
+ * so writes silently vanish. Floor the tip viem uses for fee estimation.
+ * 0.05 gwei is negligible cost on every supported chain.
+ */
+function withPriorityFeeFloor(chain: Chain): Chain {
+	return {
+		...chain,
+		fees: {
+			...chain.fees,
+			defaultPriorityFee: parseGwei("0.05"),
+		},
+	};
+}
+
+/**
  * Per-chain RPC environment variable overrides
  */
 const RPC_ENV_KEYS: Record<number, string> = {
@@ -42,11 +59,21 @@ const RPC_ENV_KEYS: Record<number, string> = {
 };
 
 /**
- * Resolve the RPC URL for a given chain ID and default URL
+ * Resolve the RPC URL for a given chain ID and default URL.
+ *
+ * Precedence: per-chain env override (ETH_RPC_URL_MAINNET etc.) > generic
+ * ETH_RPC_URL (mainnet only) > the chain's default. The generic var must
+ * NOT apply to other chains: it invariably points at a mainnet node, and
+ * letting it override e.g. Sepolia silently routes that chain's reads and
+ * writes to mainnet — preflight checks (wrapped status, ownership) then
+ * report another chain's state for the name being operated on.
  */
 function resolveRpcUrl(chainId: number, defaultUrl: string): string {
 	const envKey = RPC_ENV_KEYS[chainId];
-	return (envKey && process.env[envKey]) || process.env.ETH_RPC_URL || defaultUrl;
+	const perChain = envKey ? process.env[envKey] : undefined;
+	if (perChain) return perChain;
+	if (chainId === 1 && process.env.ETH_RPC_URL) return process.env.ETH_RPC_URL;
+	return defaultUrl;
 }
 
 /**
@@ -96,7 +123,7 @@ export async function createEnsWalletClient(
 	accountIndex = 0,
 ): Promise<WalletClient | null> {
 	const config = getNetworkConfig(network);
-	const chain = CHAIN_MAP[config.chainId] || sepolia;
+	const chain = withPriorityFeeFloor(CHAIN_MAP[config.chainId] || sepolia);
 	const rpcUrl = resolveRpcUrl(config.chainId, config.rpcUrl);
 
 	if (useLedger) {
@@ -131,10 +158,11 @@ export async function createChainWalletClient(
 	useLedger = false,
 	accountIndex = 0,
 ): Promise<WalletClient | null> {
-	const chain = CHAIN_MAP[chainId];
-	if (!chain) {
+	const baseChain = CHAIN_MAP[chainId];
+	if (!baseChain) {
 		throw new Error(`Unsupported chain ID: ${chainId}`);
 	}
+	const chain = withPriorityFeeFloor(baseChain);
 	const rpcUrl = resolveRpcUrl(chainId, defaultRpcUrl);
 
 	if (useLedger) {

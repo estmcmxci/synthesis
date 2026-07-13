@@ -35,6 +35,7 @@ function buildOptions(
     schemaOverride?: Uint8Array;
     fetchOverride?: typeof fetch;
     probeSign?: boolean;
+    identity?: NonNullable<AgentVerifyOptions["testHooks"]>["identity"];
   } = {},
 ): AgentVerifyOptions {
   const records = overrides.records ?? recordsFixture.records;
@@ -57,6 +58,7 @@ function buildOptions(
         throw new Error(`unexpected fetch: ${uri}`);
       },
       getOwner: async () => recordsFixture.ownerAddress as `0x${string}`,
+      identity: overrides.identity,
     },
   };
 }
@@ -330,4 +332,116 @@ test("AGENT_RECORD_KEYS is the locked 9-key list", () => {
   assert.equal(AGENT_RECORD_KEYS.length, 9);
   assert.ok(AGENT_RECORD_KEYS.includes("policy-hash"));
   assert.ok(AGENT_RECORD_KEYS.includes("agent-endpoint[web]"));
+});
+
+// =============================================================================
+// ENSIP-25 identity + Adapter8004 binding integration
+// =============================================================================
+
+test("no ERC-8004 registration — identityCard agent fields stay null, no new warnings, still verifies", async () => {
+  // Backward compat: names without any ENSIP-25 claim (like the fixture)
+  // must verify exactly as before the adapter integration.
+  const result = await verifyAgentIdentity("emilemarcelagustin.eth", buildOptions());
+  assert.equal(result.verified, true);
+  assert.equal(result.identityCard.agentId, null);
+  assert.equal(result.identityCard.registryChain, null);
+  assert.equal(result.identity?.verified, false);
+  assert.equal(result.warnings.some((w) => /agent-ids/.test(w)), false);
+});
+
+test("adapter-bound registration — identityCard populated and binding layer reports the bindingOf cross-check", async () => {
+  const { KNOWN_REGISTRIES, KNOWN_ADAPTERS, buildEnsip25Key } = await import("../utils/erc7930.js");
+  const { NAME_WRAPPER_ADDRESS } = await import("../utils/ens.js");
+  const { namehash } = await import("viem");
+  const REG = KNOWN_REGISTRIES["8004-ethereum"];
+  const ADAPTER = KNOWN_ADAPTERS[REG.chainId];
+  const key = buildEnsip25Key(REG.chainId, REG.address, "42");
+  const identityRecords: Record<string, string> = {
+    "agent-ids": '["42"]',
+    [key]: "1",
+  };
+
+  const result = await verifyAgentIdentity(
+    "emilemarcelagustin.eth",
+    buildOptions({
+      identity: {
+        readTextRecord: async (_ens, k) => identityRecords[k] ?? null,
+        verifyOnChain: async () => ({
+          tokenURI: "data:application/json;base64,e30=",
+          owner: ADAPTER,
+        }),
+        probeBinding: async () => ({
+          outcome: "bound",
+          identityRegistry: REG.address,
+          tokenContract: NAME_WRAPPER_ADDRESS,
+          tokenId: BigInt(namehash("emilemarcelagustin.eth")).toString(),
+        }),
+      },
+    }),
+  );
+  assert.equal(result.verified, true);
+  assert.equal(result.layers.binding.passed, true);
+  assert.equal(result.identityCard.agentId, "42");
+  assert.equal(result.identityCard.registryChain, `eip155:${REG.chainId}`);
+  assert.equal(
+    result.identityCard.registryAddress?.toLowerCase(),
+    REG.address.toLowerCase(),
+  );
+  assert.equal(result.identity?.binding?.passed, true);
+  assert.ok(
+    result.layers.binding.details.some((d) => /bindingOf matches NameWrapper \+ namehash/.test(d)),
+    JSON.stringify(result.layers.binding.details),
+  );
+});
+
+test("agent-ids claim that fails on-chain verification — warning surfaced, binding layer not failed by it", async () => {
+  // Covers both a stale index and the trust-gap rejection (agent bound to a
+  // different name): identity comes back unverified while the index is
+  // non-empty. The verifier warns rather than hard-failing — record-level
+  // claims are owner-controlled and operationally drift-prone.
+  const result = await verifyAgentIdentity(
+    "emilemarcelagustin.eth",
+    buildOptions({
+      records: { ...recordsFixture.records, "agent-ids": '["999"]' },
+      identity: {
+        readTextRecord: async (_ens, k) => (k === "agent-ids" ? '["999"]' : null),
+        // no ENSIP-25 record found → identity unverified
+      },
+    }),
+  );
+  assert.equal(result.verified, true);
+  assert.equal(result.layers.binding.passed, true);
+  assert.ok(
+    result.warnings.some((w) => /agent-ids lists 1 agent ID/.test(w)),
+    JSON.stringify(result.warnings),
+  );
+});
+
+test("existence-only registration (not adapter-managed) — noted in binding details, no failure", async () => {
+  const { KNOWN_REGISTRIES, buildEnsip25Key } = await import("../utils/erc7930.js");
+  const REG = KNOWN_REGISTRIES["8004-base"];
+  const key = buildEnsip25Key(REG.chainId, REG.address, "24994");
+  const identityRecords: Record<string, string> = {
+    "agent-ids": '["24994"]',
+    [key]: "1",
+  };
+  const result = await verifyAgentIdentity(
+    "emilemarcelagustin.eth",
+    buildOptions({
+      identity: {
+        readTextRecord: async (_ens, k) => identityRecords[k] ?? null,
+        verifyOnChain: async () => ({
+          tokenURI: "data:application/json;base64,e30=",
+          owner: "0xeb0ABB367540f90B57b3d5719fd2b9c740a15022",
+        }),
+        probeBinding: async () => ({ outcome: "unbound" }),
+      },
+    }),
+  );
+  assert.equal(result.verified, true);
+  assert.equal(result.identityCard.agentId, "24994");
+  assert.ok(
+    result.layers.binding.details.some((d) => /existence-only/.test(d)),
+    JSON.stringify(result.layers.binding.details),
+  );
 });

@@ -1,9 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveIdentity } from "./identity.js";
-import { KNOWN_REGISTRIES, buildEnsip25Key } from "../utils/erc7930.js";
+import { namehash } from "viem";
+import { resolveIdentity, type AdapterBindingProbe } from "./identity.js";
+import { KNOWN_REGISTRIES, KNOWN_ADAPTERS, buildEnsip25Key } from "../utils/erc7930.js";
+import { NAME_WRAPPER_ADDRESS } from "../utils/ens.js";
 
 const BASE = KNOWN_REGISTRIES["8004-base"];
+const BASE_ADAPTER = KNOWN_ADAPTERS[BASE.chainId];
 
 function records(map: Record<string, string>) {
   return async (_ens: string, key: string) => map[key] ?? null;
@@ -182,4 +185,201 @@ test("agent-ids has an ID but ENSIP-25 record is missing — does not falsely ve
     },
   });
   assert.equal(result.verified, false);
+});
+
+// =============================================================================
+// Adapter8004 binding cross-check
+// =============================================================================
+
+/** On-chain existence check where the adapter is the registry owner of the
+ * agent token — the normal state for adapter-registered agents. */
+const adapterOwnedOnChain = async () => ({
+  tokenURI: "data:application/json;base64,eyJuYW1lIjoidGVzdCJ9",
+  owner: BASE_ADAPTER,
+});
+
+function boundTo(name: string, overrides: Partial<Extract<AdapterBindingProbe, { outcome: "bound" }>> = {}) {
+  return async (): Promise<AdapterBindingProbe> => ({
+    outcome: "bound",
+    identityRegistry: BASE.address,
+    tokenContract: NAME_WRAPPER_ADDRESS,
+    tokenId: BigInt(namehash(name)).toString(),
+    ...overrides,
+  });
+}
+
+function claimFixture(agentId: string) {
+  return records({
+    "agent-ids": `["${agentId}"]`,
+    [buildEnsip25Key(BASE.chainId, BASE.address, agentId)]: "1",
+  });
+}
+
+test("adapter binding matches NameWrapper + namehash(name) — binding.passed true", async () => {
+  const result = await resolveIdentity("emilemarcelagustin.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    testHooks: {
+      readTextRecord: claimFixture("24994"),
+      verifyOnChain: adapterOwnedOnChain,
+      probeBinding: boundTo("emilemarcelagustin.eth"),
+    },
+  });
+  assert.equal(result.verified, true);
+  assert.equal(result.agentId, "24994");
+  assert.equal(result.binding?.passed, true);
+  assert.equal(result.binding?.adapterAddress, BASE_ADAPTER);
+  assert.equal(result.binding?.tokenContract, NAME_WRAPPER_ADDRESS);
+  assert.equal(result.binding?.tokenId, BigInt(namehash("emilemarcelagustin.eth")).toString());
+});
+
+test("TRUST GAP: claiming an agentId bound to a DIFFERENT name is rejected, not existence-verified", async () => {
+  // The attack #65 closes: attacker has text-record write access to
+  // attacker.eth and claims an agentId that the adapter provably bound to
+  // victim.eth's wrapped token. Existence-only verification would pass this;
+  // the binding cross-check must reject it outright.
+  const result = await resolveIdentity("attacker.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    testHooks: {
+      readTextRecord: claimFixture("24994"),
+      verifyOnChain: adapterOwnedOnChain,
+      probeBinding: boundTo("victim.eth"),
+    },
+  });
+  assert.equal(result.verified, false);
+  assert.equal(result.agentId, null);
+  assert.equal(result.binding, null);
+});
+
+test("adapter binding to a non-NameWrapper token contract is rejected for the claiming name", async () => {
+  const result = await resolveIdentity("emilemarcelagustin.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    testHooks: {
+      readTextRecord: claimFixture("24994"),
+      verifyOnChain: adapterOwnedOnChain,
+      probeBinding: boundTo("emilemarcelagustin.eth", {
+        tokenContract: "0x1111111111111111111111111111111111111111",
+      }),
+    },
+  });
+  assert.equal(result.verified, false);
+});
+
+test("unbound (bindingOf reverts) — legacy direct registration keeps existence-only verification", async () => {
+  const result = await resolveIdentity("emilemarcelagustin.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    testHooks: {
+      readTextRecord: claimFixture("24994"),
+      verifyOnChain: happyOnChain,
+      probeBinding: async () => ({ outcome: "unbound" }),
+    },
+  });
+  assert.equal(result.verified, true);
+  assert.equal(result.binding, null);
+});
+
+test("adapter unreachable — degrades to existence-only with binding.passed false, does not reject", async () => {
+  const result = await resolveIdentity("emilemarcelagustin.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    testHooks: {
+      readTextRecord: claimFixture("24994"),
+      verifyOnChain: happyOnChain,
+      probeBinding: async () => ({ outcome: "unavailable" }),
+    },
+  });
+  assert.equal(result.verified, true);
+  assert.equal(result.binding?.passed, false);
+  assert.match(result.binding?.reason ?? "", /unreachable/);
+});
+
+test("testHooks without probeBinding — no network, defaults to unavailable (existence-only)", async () => {
+  const result = await resolveIdentity("emilemarcelagustin.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    testHooks: {
+      readTextRecord: claimFixture("24994"),
+      verifyOnChain: happyOnChain,
+      // probeBinding intentionally omitted
+    },
+  });
+  assert.equal(result.verified, true);
+  assert.equal(result.binding?.passed, false);
+});
+
+test("adapter identityRegistry mismatch — binding not comparable, degrades without rejecting", async () => {
+  const result = await resolveIdentity("emilemarcelagustin.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    testHooks: {
+      readTextRecord: claimFixture("24994"),
+      verifyOnChain: adapterOwnedOnChain,
+      probeBinding: boundTo("emilemarcelagustin.eth", {
+        identityRegistry: "0x2222222222222222222222222222222222222222",
+      }),
+    },
+  });
+  assert.equal(result.verified, true);
+  assert.equal(result.binding?.passed, false);
+  assert.match(result.binding?.reason ?? "", /identityRegistry/);
+});
+
+test("agent token not held by the adapter — binding not authoritative, degrades without rejecting", async () => {
+  const result = await resolveIdentity("emilemarcelagustin.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    testHooks: {
+      readTextRecord: claimFixture("24994"),
+      // owner is an EOA, not the adapter
+      verifyOnChain: happyOnChain,
+      probeBinding: boundTo("emilemarcelagustin.eth"),
+    },
+  });
+  assert.equal(result.verified, true);
+  assert.equal(result.binding?.passed, false);
+  assert.match(result.binding?.reason ?? "", /not the adapter/);
+});
+
+test("no adapter configured for the chain — binding is null, legacy behavior", async () => {
+  const result = await resolveIdentity("emilemarcelagustin.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    adapters: {},
+    testHooks: {
+      readTextRecord: claimFixture("24994"),
+      verifyOnChain: happyOnChain,
+      probeBinding: async () => {
+        throw new Error("must not be called when no adapter is configured");
+      },
+    },
+  });
+  assert.equal(result.verified, true);
+  assert.equal(result.binding, null);
+});
+
+test("mismatch-rejected id is skipped but a later correctly-bound id still verifies", async () => {
+  const wrongKey = buildEnsip25Key(BASE.chainId, BASE.address, "111");
+  const rightKey = buildEnsip25Key(BASE.chainId, BASE.address, "222");
+  const result = await resolveIdentity("emilemarcelagustin.eth", undefined, {
+    registries: [{ chainId: BASE.chainId, address: BASE.address }],
+    testHooks: {
+      readTextRecord: records({
+        "agent-ids": '["111", "222"]',
+        [wrongKey]: "1",
+        [rightKey]: "1",
+      }),
+      verifyOnChain: adapterOwnedOnChain,
+      probeBinding: async (_reg, agentId) =>
+        agentId === "222"
+          ? {
+              outcome: "bound",
+              identityRegistry: BASE.address,
+              tokenContract: NAME_WRAPPER_ADDRESS,
+              tokenId: BigInt(namehash("emilemarcelagustin.eth")).toString(),
+            }
+          : {
+              outcome: "bound",
+              identityRegistry: BASE.address,
+              tokenContract: NAME_WRAPPER_ADDRESS,
+              tokenId: BigInt(namehash("victim.eth")).toString(),
+            },
+    },
+  });
+  assert.equal(result.verified, true);
+  assert.equal(result.agentId, "222");
+  assert.equal(result.binding?.passed, true);
 });

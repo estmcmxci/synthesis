@@ -12,6 +12,8 @@ export {
   AgentBookNetwork,
   PersonhoodResultSchema,
   IdentityResultSchema,
+  IdentityBindingSchema,
+  type IdentityBinding,
   ContextResultSchema,
   AgentManifestSchema,
   AgentManifestSignatureSchema,
@@ -33,7 +35,9 @@ export {
 
 export {
   resolveIdentity,
+  probeAdapterBinding,
   type ResolveIdentityOptions,
+  type AdapterBindingProbe,
 } from "./layers/identity.js";
 
 export {
@@ -100,6 +104,7 @@ export {
   resolveAddress,
   getOwner,
   getResolverAddress,
+  NAME_WRAPPER_ADDRESS,
 } from "./utils/ens.js";
 
 export {
@@ -124,6 +129,7 @@ export {
   buildEnsip25Key,
   parseEnsip25Key,
   KNOWN_REGISTRIES,
+  KNOWN_ADAPTERS,
 } from "./utils/erc7930.js";
 
 export {
