@@ -26,6 +26,25 @@ export const PersonhoodResultSchema = z.object({
 
 export type PersonhoodResult = z.infer<typeof PersonhoodResultSchema>;
 
+/**
+ * Adapter8004 binding cross-check result. `null` when the agent is not
+ * adapter-managed (legacy direct registration, or no known adapter on the
+ * registry's chain) — existence-only verification applies. `passed: false`
+ * with a `reason` means an adapter was consulted but the binding could not
+ * be verified (e.g. adapter unreachable); a binding that resolves to a
+ * *different* token than the ENS name's wrapped NameWrapper token rejects
+ * the (registry, agentId) pair outright and never surfaces here.
+ */
+export const IdentityBindingSchema = z.object({
+  passed: z.boolean(),
+  adapterAddress: z.string(),
+  tokenContract: z.string().nullable(),
+  tokenId: z.string().nullable(),
+  reason: z.string().nullable(),
+});
+
+export type IdentityBinding = z.infer<typeof IdentityBindingSchema>;
+
 export const IdentityResultSchema = z.object({
   verified: z.boolean(),
   registryAddress: z.string().nullable(),
@@ -33,6 +52,8 @@ export const IdentityResultSchema = z.object({
   registryChain: z.string().nullable(),
   tokenURI: z.string().nullable(),
   owner: z.string().nullable(),
+  // Optional so pre-adapter payloads still parse (additive change).
+  binding: IdentityBindingSchema.nullable().optional(),
 });
 
 export type IdentityResult = z.infer<typeof IdentityResultSchema>;

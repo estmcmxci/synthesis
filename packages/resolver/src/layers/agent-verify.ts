@@ -17,6 +17,9 @@ import {
 } from "../utils/ens.js";
 import { fetchIpfsRaw } from "../utils/ipfs.js";
 import { assertPublicHttpUrl } from "../utils/ssrf-guard.js";
+import { resolveIdentity, type ResolveIdentityOptions } from "./identity.js";
+import { decodeErc7930Address } from "../utils/erc7930.js";
+import type { IdentityResult } from "../schema.js";
 
 interface FetchedDocument {
   bytes: Uint8Array;
@@ -145,6 +148,11 @@ export interface AgentVerifyOptions {
      * because conformance fixtures bind to 127.0.0.1, which the guard
      * (correctly) rejects in production. Leave undefined in production code. */
     fetchEndpoint?: (url: string, init?: RequestInit) => Promise<Response>;
+    /** Inject the ENSIP-25 identity resolution (agent-ids index, ENSIP-25
+     * records, on-chain existence + Adapter8004 binding probes). When
+     * testHooks are set but this is omitted, identity resolves to
+     * not-found without any network calls. */
+    identity?: ResolveIdentityOptions["testHooks"];
   };
 }
 
@@ -200,6 +208,9 @@ export interface AgentVerifyResult {
   ensName: string;
   verified: boolean;
   identityCard: IdentityCard;
+  /** Full ENSIP-25 identity layer result (existence + Adapter8004 binding).
+   * Optional/additive — absent in older serialized payloads. */
+  identity?: IdentityResult;
   layers: {
     records: LayerResultRecords;
     schema: LayerResultSchema;
@@ -330,15 +341,55 @@ export async function verifyAgentIdentity(
     owner = options.testHooks.getOwner ? await options.testHooks.getOwner(ensName) : null;
   } else {
     const client = createEnsClient(options.ensRpcUrl);
-    records = await getTextRecords(client, ensName, AGENT_RECORD_KEYS as unknown as string[]);
+    // `agent-ids` rides along with the ENSIP-64 keys purely for the
+    // stale-claim warning below — it is NOT part of the records layer's
+    // required/validated key set.
+    records = await getTextRecords(client, ensName, [
+      ...(AGENT_RECORD_KEYS as unknown as string[]),
+      "agent-ids",
+    ]);
     owner = await getOwner(client, ensName);
   }
+
+  // ENSIP-25 identity resolution (best-effort): populates the identity card's
+  // agentId/registry fields and feeds the binding layer's Adapter8004
+  // cross-check. Same no-network contract as the other testHooks.
+  const identity = await resolveIdentity(ensName, undefined, {
+    ensRpcUrl: options.ensRpcUrl,
+    testHooks: options.testHooks
+      ? options.testHooks.identity ?? { readTextRecord: async () => null }
+      : undefined,
+  });
+  result.identity = identity;
 
   // Identity Card from records (best-effort even if records layer fails)
   result.identityCard.ownerAddress = owner ?? null;
   result.identityCard.kernelWallet = records["kernel-wallet"] ?? null;
   result.identityCard.runtimePubkey = records["runtime-pubkey"] ?? null;
   result.identityCard.endpointWeb = records["agent-endpoint[web]"] ?? null;
+  result.identityCard.agentId = identity.agentId;
+  result.identityCard.registryChain = identity.registryChain;
+  result.identityCard.registryAddress = identity.registryAddress
+    ? decodeErc7930Address(identity.registryAddress)?.address ?? identity.registryAddress
+    : null;
+
+  // Stale/unverifiable claim warning: the name advertises agent IDs but none
+  // of them verified on-chain (burned token, wrong registry, or an
+  // adapter-managed agent bound to a different name — the trust-gap case).
+  if (!identity.verified) {
+    let claimedIds: string[] = [];
+    try {
+      const parsed = JSON.parse(records["agent-ids"] ?? "[]");
+      if (Array.isArray(parsed)) claimedIds = parsed.filter((x) => typeof x === "string");
+    } catch {
+      // Malformed index — the identity layer already ignores it.
+    }
+    if (claimedIds.length > 0) {
+      result.warnings.push(
+        `identity: agent-ids lists ${claimedIds.length} agent ID(s) but none verified on-chain (stale index, or the agent is bound to a different name)`,
+      );
+    }
+  }
 
   // -------------------------------------------------------------------------
   // Layer 1: records
@@ -479,6 +530,26 @@ export async function verifyAgentIdentity(
       bindingPassed = false;
       bindingErrCode ??= AgentVerifyErrorCode.BINDING_AGENT_MISMATCH;
       details.push(`policy.agent.ens-name (${policyEns ?? "missing"}) != ${ensName}`);
+    }
+
+    // ERC-8004 on-chain binding (Adapter8004). Purely additive to the
+    // policy-consistency checks above: a cryptographic bindingOf match is
+    // reported, an unreachable adapter is a warning, and a name with no
+    // ERC-8004 registration at all keeps its legacy binding semantics.
+    // (An adapter-managed agent bound to a DIFFERENT name is rejected
+    // inside resolveIdentity and surfaces via the stale-claim warning.)
+    if (identity.verified && identity.binding?.passed) {
+      details.push(
+        `ERC-8004 agent #${identity.agentId} bound to ${ensName} via Adapter8004 (${identity.binding.adapterAddress}) — bindingOf matches NameWrapper + namehash`,
+      );
+    } else if (identity.verified && identity.binding && !identity.binding.passed) {
+      result.warnings.push(
+        `binding: ERC-8004 registration verified existence-only — ${identity.binding.reason}`,
+      );
+    } else if (identity.verified) {
+      details.push(
+        `ERC-8004 agent #${identity.agentId} registration is existence-only (not adapter-managed)`,
+      );
     }
 
     result.layers.binding.passed = bindingPassed;

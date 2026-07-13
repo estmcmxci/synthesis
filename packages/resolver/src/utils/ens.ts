@@ -24,7 +24,8 @@ const ENS_REGISTRY_ADDRESS: Address =
 
 // Mainnet NameWrapper. Sepolia uses 0x0635513f179D50A207757E05759CbD106d7dFcE8;
 // the resolver is mainnet-only today, so we only check the mainnet address here.
-const NAME_WRAPPER_ADDRESS: Address =
+// Exported for the identity layer's Adapter8004 binding cross-check.
+export const NAME_WRAPPER_ADDRESS: Address =
   "0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401";
 
 // Mainnet BaseRegistrar (.eth). Owns all unwrapped .eth 2LDs at the registry
